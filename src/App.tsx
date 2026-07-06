@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   FlaskConical,
   GraduationCap,
@@ -153,6 +154,7 @@ export function App() {
   // Backend persisted login carousel (editable only by system_admin)
   const [loginCarousel, setLoginCarousel] = useState<LoginCarouselSettings | null>(null);
   const [carouselSaving, setCarouselSaving] = useState(false);
+  const [showLoginBanner, setShowLoginBanner] = useState(false);
 
   async function saveLoginCarousel(updated: LoginCarouselSettings) {
     setCarouselSaving(true);
@@ -1239,16 +1241,30 @@ export function App() {
           ) : null}
 
           {isSystemAdmin && (
-            <div className="mt-4 mb-2 rounded-xl border border-stone-200 bg-stone-50/70 px-4 py-3 text-sm dark:border-stone-700 dark:bg-stone-900/50">
-              <span className="mr-2">登录页自定义文案已接入后端存储。</span>
+            <div className="mt-4 mb-2 rounded-xl border border-stone-200 bg-stone-50/70 dark:border-stone-700 dark:bg-stone-900/50">
               <button
-                onClick={() => setActive("全局配置")}
-                className="underline text-amber-600 dark:text-amber-400"
+                onClick={() => setShowLoginBanner(!showLoginBanner)}
+                className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-stone-600 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
               >
-                前往全局配置编辑轮播标题/副标题
+                <span>登录页自定义文案已接入后端存储</span>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${showLoginBanner ? "rotate-180" : ""}`}
+                />
               </button>
-              <span className="mx-2 text-stone-400">·</span>
-              <button onClick={resetToDefault} className="underline text-amber-600 dark:text-amber-400">重置默认</button>
+              {showLoginBanner && (
+                <div className="border-t border-stone-200 px-4 py-3 text-sm dark:border-stone-700">
+                  <span className="mr-2">登录页自定义文案已接入后端存储。</span>
+                  <button
+                    onClick={() => setActive("全局配置")}
+                    className="underline text-amber-600 dark:text-amber-400"
+                  >
+                    前往全局配置编辑轮播标题/副标题
+                  </button>
+                  <span className="mx-2 text-stone-400">·</span>
+                  <button onClick={resetToDefault} className="underline text-amber-600 dark:text-amber-400">重置默认</button>
+                </div>
+              )}
             </div>
           )}
 
