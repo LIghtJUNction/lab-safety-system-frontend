@@ -32,21 +32,74 @@ export type Incident = {
 };
 
 export type CountBucket = { name: string; count: number };
-export type IncidentAnalytics = { by_category: CountBucket[]; by_severity: CountBucket[] };
-export type Training = { id: number; title: string; target_role: string; status: string; exam_required_score: number };
-export type Equipment = { id: number; asset_code: string; name: string; lab_name: string; status: string; owner: string | null };
-export type Booking = { id: number; equipment_id: number; user_id: number; starts_at: string; ends_at: string; purpose: string };
-export type RepairTicket = { id: number; equipment_id: number; reported_by: number; description: string; status: string };
-export type User = { id: number; username: string; display_name: string; email: string; role: string; auth_provider: string; department: string | null; is_active: boolean };
-export type AuthUser = Pick<User, "id" | "username" | "display_name" | "email" | "role" | "auth_provider">;
+export type IncidentAnalytics = {
+  by_category: CountBucket[];
+  by_severity: CountBucket[];
+};
+export type Training = {
+  id: number;
+  title: string;
+  target_role: string;
+  status: string;
+  exam_required_score: number;
+};
+export type Equipment = {
+  id: number;
+  asset_code: string;
+  name: string;
+  lab_name: string;
+  status: string;
+  owner: string | null;
+};
+export type Booking = {
+  id: number;
+  equipment_id: number;
+  user_id: number;
+  starts_at: string;
+  ends_at: string;
+  purpose: string;
+};
+export type RepairTicket = {
+  id: number;
+  equipment_id: number;
+  reported_by: number;
+  description: string;
+  status: string;
+};
+export type User = {
+  id: number;
+  username: string;
+  display_name: string;
+  email: string;
+  role: string;
+  auth_provider: string;
+  department: string | null;
+  is_active: boolean;
+};
+export type AuthUser = Pick<
+  User,
+  "id" | "username" | "display_name" | "email" | "role" | "auth_provider"
+>;
 export type AuthSession = {
   access_token: string;
   token_type: string;
   expires_in: number;
   user: AuthUser;
 };
-export type AuthMethods = { password: boolean; sso: boolean; oauth: boolean; sso_login_url: string | null; oauth_login_url: string | null };
-export type ExamResult = { id: number; training_id: number; user_id: number; score: number; status: string };
+export type AuthMethods = {
+  password: boolean;
+  sso: boolean;
+  oauth: boolean;
+  sso_login_url: string | null;
+  oauth_login_url: string | null;
+};
+export type ExamResult = {
+  id: number;
+  training_id: number;
+  user_id: number;
+  score: number;
+  status: string;
+};
 export type SafetyHazard = {
   id: number;
   title: string;
@@ -60,17 +113,36 @@ export type SafetyHazard = {
   remediation_photo_url: string | null;
   remediation_note: string | null;
 };
-export type HazardAnalytics = { by_status: CountBucket[]; by_category: CountBucket[] };
+export type HazardAnalytics = {
+  by_status: CountBucket[];
+  by_category: CountBucket[];
+};
 export type RegulationCreate = Omit<Regulation, "id" | "created_at">;
 export type IncidentCreate = Omit<Incident, "id">;
-export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & { exam_required_score?: number; starts_on?: string | null };
-export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & { owner?: string | null };
+export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & {
+  exam_required_score?: number;
+  starts_on?: string | null;
+};
+export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & {
+  owner?: string | null;
+};
 export type BookingCreate = Omit<Booking, "id">;
 export type RepairCreate = Omit<RepairTicket, "id">;
-export type HazardCreate = Omit<SafetyHazard, "id" | "status" | "responsible_user_id" | "remediation_photo_url" | "remediation_note">;
+export type HazardCreate = Omit<
+  SafetyHazard,
+  | "id"
+  | "status"
+  | "responsible_user_id"
+  | "remediation_photo_url"
+  | "remediation_note"
+>;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" });
+  const headers = new Headers(
+    init?.body instanceof FormData
+      ? undefined
+      : { "Content-Type": "application/json" },
+  );
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -99,14 +171,21 @@ export const api = {
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
   hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
-  regulations: (q = "") => request<Regulation[]>(`/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  regulations: (q = "") =>
+    request<Regulation[]>(
+      `/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
   incidents: () => request<Incident[]>("/incidents"),
   trainings: () => request<Training[]>("/trainings"),
-  equipment: (q = "") => request<Equipment[]>(`/equipment${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  equipment: (q = "") =>
+    request<Equipment[]>(`/equipment${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   bookings: () => request<Booking[]>("/equipment-bookings"),
   repairs: () => request<RepairTicket[]>("/repair-tickets"),
   users: () => request<User[]>("/users"),
-  hazards: (q = "") => request<SafetyHazard[]>(`/hazards${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  hazards: (q = "") =>
+    request<SafetyHazard[]>(
+      `/hazards${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+    ),
   createRegulation: (payload: RegulationCreate) =>
     request<Regulation>("/regulations", {
       method: "POST",
@@ -163,18 +242,24 @@ export const api = {
   uploadRegulation: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<{ url: string; filename: string; size: number }>("/regulations/upload", {
-      method: "POST",
-      body: form,
-    });
+    return request<{ url: string; filename: string; size: number }>(
+      "/regulations/upload",
+      {
+        method: "POST",
+        body: form,
+      },
+    );
   },
   uploadIncident: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<{ url: string; filename: string; size: number }>("/incidents/upload", {
-      method: "POST",
-      body: form,
-    });
+    return request<{ url: string; filename: string; size: number }>(
+      "/incidents/upload",
+      {
+        method: "POST",
+        body: form,
+      },
+    );
   },
   createHazard: (payload: HazardCreate) =>
     request<SafetyHazard>("/hazards", {
@@ -186,7 +271,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ responsible_user_id: responsibleUserId }),
     }),
-  submitHazardRemediation: (hazardId: number, remediationPhotoUrl: string, remediationNote = "已完成整改并上传整改照片。") =>
+  submitHazardRemediation: (
+    hazardId: number,
+    remediationPhotoUrl: string,
+    remediationNote = "已完成整改并上传整改照片。",
+  ) =>
     request<SafetyHazard>(`/hazards/${hazardId}/remediation`, {
       method: "POST",
       body: JSON.stringify({
@@ -194,20 +283,36 @@ export const api = {
         remediation_note: remediationNote,
       }),
     }),
+  updateHazardStatus: (hazardId: number, status: string) =>
+    request<SafetyHazard>(`/hazards/${hazardId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  updateRepairStatus: (repairId: number, status: string) =>
+    request<RepairTicket>(`/repair-tickets/${repairId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
   uploadHazardIssuePhoto: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<{ url: string; filename: string; size: number }>("/hazards/upload/issue-photo", {
-      method: "POST",
-      body: form,
-    });
+    return request<{ url: string; filename: string; size: number }>(
+      "/hazards/upload/issue-photo",
+      {
+        method: "POST",
+        body: form,
+      },
+    );
   },
   uploadHazardRemediationPhoto: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<{ url: string; filename: string; size: number }>("/hazards/upload/remediation-photo", {
-      method: "POST",
-      body: form,
-    });
+    return request<{ url: string; filename: string; size: number }>(
+      "/hazards/upload/remediation-photo",
+      {
+        method: "POST",
+        body: form,
+      },
+    );
   },
 };

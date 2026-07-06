@@ -2,7 +2,14 @@
   color: #172033;
   background: #f7f9fb;
   font-family:
-    Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -48,7 +55,8 @@ button:disabled {
   padding: 56px clamp(28px, 7vw, 96px);
   background:
     linear-gradient(rgba(247, 249, 251, 0.92), rgba(247, 249, 251, 0.92)),
-    url("https://images.unsplash.com/photo-1581093458791-9d09cc837e9b?auto=format&fit=crop&w=1600&q=80") center/cover;
+    url("https://images.unsplash.com/photo-1581093458791-9d09cc837e9b?auto=format&fit=crop&w=1600&q=80")
+      center/cover;
 }
 
 .login-hero h1 {
@@ -475,9 +483,32 @@ nav button:hover {
   font-size: 13px;
 }
 
+.table-row.with-actions {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.7fr) minmax(
+      0,
+      0.9fr
+    ) minmax(0, 0.65fr) minmax(86px, max-content);
+}
+
 .table-row span:first-child {
   color: #0f172a;
   font-weight: 650;
+}
+
+.row-actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.row-actions button {
+  min-height: 30px;
+  padding: 0 10px;
+  color: #0f766e;
+  background: #ecfdf5;
+  border: 1px solid #ccfbf1;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
 .quick-actions {
