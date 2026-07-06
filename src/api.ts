@@ -37,6 +37,7 @@ export type Equipment = { id: number; asset_code: string; name: string; lab_name
 export type Booking = { id: number; equipment_id: number; user_id: number; starts_at: string; ends_at: string; purpose: string };
 export type RepairTicket = { id: number; equipment_id: number; reported_by: number; description: string; status: string };
 export type User = { id: number; username: string; display_name: string; email: string; role: string; auth_provider: string; department: string | null; is_active: boolean };
+export type ExamResult = { id: number; training_id: number; user_id: number; score: number; status: string };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -93,6 +94,16 @@ export const api = {
         status: "active",
         starts_on: new Date().toISOString().slice(0, 10),
         exam_required_score: 80,
+      }),
+    }),
+  createExamResult: (trainingId: number, userId: number) =>
+    request<ExamResult>("/exam-results", {
+      method: "POST",
+      body: JSON.stringify({
+        training_id: trainingId,
+        user_id: userId,
+        score: 92,
+        status: "passed",
       }),
     }),
   createUser: () =>

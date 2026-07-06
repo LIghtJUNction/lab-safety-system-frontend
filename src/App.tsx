@@ -151,6 +151,12 @@ export function App() {
     return { userId: user.id, equipmentId: device.id };
   }
 
+  async function ensureTrainingAndUser() {
+    const user = users[0] ?? (await api.createUser());
+    const training = trainings[0] ?? (await api.createTraining());
+    return { userId: user.id, trainingId: training.id };
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -232,6 +238,7 @@ export function App() {
         <section className="quick-actions">
           <button onClick={() => withAction("创建法规", api.createRegulation)}><FlaskConical size={16} />创建法规</button>
           <button onClick={() => withAction("录入事故案例", api.createIncident)}><FlaskConical size={16} />录入事故案例</button>
+          <button onClick={() => withAction("登记考核通过", async () => { const ids = await ensureTrainingAndUser(); return api.createExamResult(ids.trainingId, ids.userId); })}><FlaskConical size={16} />登记考核通过</button>
           <button onClick={() => withAction("登记设备", api.createEquipment)}><FlaskConical size={16} />登记设备</button>
           <button onClick={() => withAction("创建设备预约", async () => { const ids = await ensureUserAndEquipment(); return api.createBooking(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />预约设备</button>
           <button onClick={() => withAction("提交报修", async () => { const ids = await ensureUserAndEquipment(); return api.createRepair(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />提交报修</button>
