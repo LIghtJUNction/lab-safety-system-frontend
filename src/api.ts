@@ -61,6 +61,13 @@ export type SafetyHazard = {
   remediation_note: string | null;
 };
 export type HazardAnalytics = { by_status: CountBucket[]; by_category: CountBucket[] };
+export type RegulationCreate = Omit<Regulation, "id" | "created_at">;
+export type IncidentCreate = Omit<Incident, "id">;
+export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & { exam_required_score?: number; starts_on?: string | null };
+export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & { owner?: string | null };
+export type BookingCreate = Omit<Booking, "id">;
+export type RepairCreate = Omit<RepairTicket, "id">;
+export type HazardCreate = Omit<SafetyHazard, "id" | "status" | "responsible_user_id" | "remediation_photo_url" | "remediation_note">;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" });
@@ -100,49 +107,29 @@ export const api = {
   repairs: () => request<RepairTicket[]>("/repair-tickets"),
   users: () => request<User[]>("/users"),
   hazards: (q = "") => request<SafetyHazard[]>(`/hazards${q ? `?q=${encodeURIComponent(q)}` : ""}`),
-  createRegulation: () =>
+  createRegulation: (payload: RegulationCreate) =>
     request<Regulation>("/regulations", {
       method: "POST",
-      body: JSON.stringify({
-        title: "实验室安全准入管理办法",
-        regulation_type: "regulation",
-        issuing_authority: "安全办公室",
-        effective_date: new Date().toISOString().slice(0, 10),
-        summary: "规范实验室准入、风险评估、培训考核和应急处置流程。",
-      }),
+      body: JSON.stringify(payload),
     }),
-  createIncident: () =>
+  createIncident: (payload: IncidentCreate) =>
     request<Incident>("/incidents", {
       method: "POST",
-      body: JSON.stringify({
-        title: "危化品泄漏案例",
-        lab_name: "化学实验室 A",
-        occurred_on: new Date().toISOString().slice(0, 10),
-        severity: "high",
-        category: "危化品",
-        root_cause: "试剂瓶标识不清且存放不当。",
-        corrective_actions: "完善标签、分区存储并补充专项培训。",
-      }),
+      body: JSON.stringify(payload),
     }),
-  createTraining: () =>
+  createTraining: (payload: TrainingCreate) =>
     request<Training>("/trainings", {
       method: "POST",
-      body: JSON.stringify({
-        title: "危化品安全操作培训",
-        target_role: "researcher",
-        status: "active",
-        starts_on: new Date().toISOString().slice(0, 10),
-        exam_required_score: 80,
-      }),
+      body: JSON.stringify(payload),
     }),
-  createExamResult: (trainingId: number, userId: number) =>
+  createExamResult: (trainingId: number, userId: number, score = 92) =>
     request<ExamResult>("/exam-results", {
       method: "POST",
       body: JSON.stringify({
         training_id: trainingId,
         user_id: userId,
-        score: 92,
-        status: "passed",
+        score,
+        status: score >= 60 ? "passed" : "failed",
       }),
     }),
   createUser: () =>
@@ -158,40 +145,20 @@ export const api = {
         password: `Strong-${Date.now()}!Aa1`,
       }),
     }),
-  createEquipment: () =>
+  createEquipment: (payload: EquipmentCreate) =>
     request<Equipment>("/equipment", {
       method: "POST",
-      body: JSON.stringify({
-        asset_code: `EQ-${Date.now().toString().slice(-6)}`,
-        name: "气相色谱仪",
-        lab_name: "分析测试中心",
-        status: "available",
-        owner: "设备管理员",
-      }),
+      body: JSON.stringify(payload),
     }),
-  createBooking: (equipmentId: number, userId: number) => {
-    const start = new Date(Date.now() + 60 * 60 * 1000);
-    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
-    return request<Booking>("/equipment-bookings", {
+  createBooking: (payload: BookingCreate) =>
+    request<Booking>("/equipment-bookings", {
       method: "POST",
-      body: JSON.stringify({
-        equipment_id: equipmentId,
-        user_id: userId,
-        starts_at: start.toISOString(),
-        ends_at: end.toISOString(),
-        purpose: "安全检测样品分析",
-      }),
-    });
-  },
-  createRepair: (equipmentId: number, userId: number) =>
+      body: JSON.stringify(payload),
+    }),
+  createRepair: (payload: RepairCreate) =>
     request<RepairTicket>("/repair-tickets", {
       method: "POST",
-      body: JSON.stringify({
-        equipment_id: equipmentId,
-        reported_by: userId,
-        description: "设备运行状态异常，请安排检修。",
-        status: "open",
-      }),
+      body: JSON.stringify(payload),
     }),
   uploadRegulation: (file: File) => {
     const form = new FormData();
@@ -209,29 +176,22 @@ export const api = {
       body: form,
     });
   },
-  createHazard: (reportedBy: number, issuePhotoUrl?: string) =>
+  createHazard: (payload: HazardCreate) =>
     request<SafetyHazard>("/hazards", {
       method: "POST",
-      body: JSON.stringify({
-        title: "消防通道堆放杂物",
-        lab_name: "材料实验室",
-        category: "消防通道",
-        description: "安全出口附近堆放纸箱，影响应急疏散。",
-        reported_by: reportedBy,
-        issue_photo_url: issuePhotoUrl,
-      }),
+      body: JSON.stringify(payload),
     }),
   claimHazard: (hazardId: number, responsibleUserId: number) =>
     request<SafetyHazard>(`/hazards/${hazardId}/claim`, {
       method: "POST",
       body: JSON.stringify({ responsible_user_id: responsibleUserId }),
     }),
-  submitHazardRemediation: (hazardId: number, remediationPhotoUrl: string) =>
+  submitHazardRemediation: (hazardId: number, remediationPhotoUrl: string, remediationNote = "已完成整改并上传整改照片。") =>
     request<SafetyHazard>(`/hazards/${hazardId}/remediation`, {
       method: "POST",
       body: JSON.stringify({
         remediation_photo_url: remediationPhotoUrl,
-        remediation_note: "已完成整改并上传整改照片。",
+        remediation_note: remediationNote,
       }),
     }),
   uploadHazardIssuePhoto: (file: File) => {

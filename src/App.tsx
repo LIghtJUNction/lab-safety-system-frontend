@@ -15,7 +15,7 @@ import {
   UserCog,
   Wrench,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { api, AuthMethods, AuthSession, Booking, DashboardStats, Equipment, HazardAnalytics, IncidentAnalytics, Regulation, RepairTicket, SafetyHazard, Training, User } from "./api";
 
 const nav = [
@@ -60,10 +60,65 @@ function DataTable({ title, rows }: { title: string; rows: string[][] }) {
   );
 }
 
+function ActionForm({
+  title,
+  children,
+  onSubmit,
+  actionKey,
+}: {
+  title: string;
+  children: ReactNode;
+  onSubmit: (form: FormData) => Promise<unknown>;
+  actionKey?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <form
+      className="action-form"
+      data-action={actionKey}
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setBusy(true);
+        try {
+          await onSubmit(new FormData(event.currentTarget));
+          event.currentTarget.reset();
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <h3>{title}</h3>
+      <div className="form-grid">{children}</div>
+      <button disabled={busy}>{busy ? "提交中" : "提交"}</button>
+    </form>
+  );
+}
+
 const SESSION_KEY = "lab-safety-session";
+
+function readFederatedSession() {
+  const marker = "#session=";
+  if (!window.location.hash.startsWith(marker)) return null;
+  try {
+    const encoded = window.location.hash.slice(marker.length);
+    const padded = encoded.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const bytes = Uint8Array.from(window.atob(padded), (char) => char.charCodeAt(0));
+    const session = JSON.parse(new TextDecoder().decode(bytes)) as AuthSession;
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    return session;
+  } catch {
+    return null;
+  }
+}
 
 function readSession() {
   try {
+    const federated = readFederatedSession();
+    if (federated) {
+      api.setAccessToken(federated.access_token);
+      return federated;
+    }
     const raw = window.localStorage.getItem(SESSION_KEY);
     const session = raw ? (JSON.parse(raw) as AuthSession) : null;
     api.setAccessToken(session?.access_token ?? null);
@@ -278,8 +333,39 @@ export function App() {
     }
   }
 
+  async function submitAction(label: string, action: () => Promise<unknown>) {
+    await withAction(label, action);
+  }
+
+  function value(form: FormData, key: string) {
+    const raw = form.get(key)?.toString().trim();
+    if (!raw) throw new Error(`${key} 不能为空`);
+    return raw;
+  }
+
+  function optionalValue(form: FormData, key: string) {
+    const raw = form.get(key)?.toString().trim();
+    return raw || null;
+  }
+
+  function numberValue(form: FormData, key: string) {
+    const raw = Number(value(form, key));
+    if (!Number.isFinite(raw)) throw new Error(`${key} 必须是数字`);
+    return raw;
+  }
+
+  function datetimeValue(form: FormData, key: string) {
+    return new Date(value(form, key)).toISOString();
+  }
+
   async function ensureUserAndEquipment() {
-    const device = equipment[0] ?? (isAdmin ? await api.createEquipment() : null);
+    const device = equipment[0] ?? (isAdmin ? await api.createEquipment({
+      asset_code: `EQ-${Date.now().toString().slice(-6)}`,
+      name: "临时设备",
+      lab_name: "公共实验平台",
+      status: "available",
+      owner: session?.user.display_name ?? null,
+    }) : null);
     if (!device) {
       throw new Error("当前没有可预约或报修的设备，请联系管理员先登记设备");
     }
@@ -287,7 +373,13 @@ export function App() {
   }
 
   async function ensureTrainingAndUser() {
-    const training = trainings[0] ?? (isAdmin ? await api.createTraining() : null);
+    const training = trainings[0] ?? (isAdmin ? await api.createTraining({
+      title: "临时安全培训",
+      target_role: "researcher",
+      status: "active",
+      starts_on: new Date().toISOString().slice(0, 10),
+      exam_required_score: 80,
+    }) : null);
     if (!training) {
       throw new Error("当前没有可登记的培训项目，请联系管理员先创建培训");
     }
@@ -313,12 +405,26 @@ export function App() {
   async function createHazardWithOptionalPhoto(file?: File) {
     const user = await ensureUser();
     const upload = file ? await api.uploadHazardIssuePhoto(file) : undefined;
-    return api.createHazard(user.id, upload?.url);
+    return api.createHazard({
+      title: "消防通道堆放杂物",
+      lab_name: "材料实验室",
+      category: "消防通道",
+      description: "安全出口附近堆放纸箱，影响应急疏散。",
+      reported_by: user.id,
+      issue_photo_url: upload?.url ?? null,
+    });
   }
 
   async function claimFirstHazard() {
     const user = await ensureUser();
-    const hazard = hazards.find((item) => !item.responsible_user_id) ?? (await api.createHazard(user.id));
+    const hazard = hazards.find((item) => !item.responsible_user_id) ?? (await api.createHazard({
+      title: "待认领隐患",
+      lab_name: "公共实验平台",
+      category: "日常巡检",
+      description: "巡检发现的问题需要认领处理。",
+      reported_by: user.id,
+      issue_photo_url: null,
+    }));
     return api.claimHazard(hazard.id, user.id);
   }
 
@@ -326,7 +432,14 @@ export function App() {
     const user = await ensureUser();
     let hazard = hazards.find((item) => item.responsible_user_id === user.id) ?? hazards[0];
     if (!hazard) {
-      hazard = await api.createHazard(user.id);
+      hazard = await api.createHazard({
+        title: "待整改隐患",
+        lab_name: "公共实验平台",
+        category: "日常巡检",
+        description: "需要上传整改照片的隐患。",
+        reported_by: user.id,
+        issue_photo_url: null,
+      });
     }
     if (!hazard.responsible_user_id) {
       hazard = await api.claimHazard(hazard.id, user.id);
@@ -428,7 +541,7 @@ export function App() {
             <strong>{Math.round((stats?.exam_pass_rate ?? 0) * 100)}%</strong>
             <p>当前已创建 {stats?.training_count ?? 0} 个培训项目，考试结果会实时进入统计。</p>
             {isAdmin ? (
-              <button onClick={() => withAction("创建培训", api.createTraining)}>创建培训</button>
+              <button onClick={() => document.querySelector('[data-action="training"]')?.scrollIntoView({ behavior: "smooth" })}>创建培训</button>
             ) : (
               <button onClick={() => withAction("登记考核通过", async () => {
                 const ids = await ensureTrainingAndUser();
@@ -445,14 +558,126 @@ export function App() {
         </section>
 
         <section className="quick-actions">
-          {isAdmin ? <button onClick={() => withAction("创建法规", api.createRegulation)}><FlaskConical size={16} />创建法规</button> : null}
-          {isAdmin ? <button onClick={() => withAction("录入事故案例", api.createIncident)}><FlaskConical size={16} />录入事故案例</button> : null}
-          <button onClick={() => withAction("上报隐患", () => createHazardWithOptionalPhoto())}><FlaskConical size={16} />上报隐患</button>
+          {isAdmin ? (
+            <ActionForm title="创建法规" onSubmit={(form) => submitAction("创建法规", () => api.createRegulation({
+              title: value(form, "title"),
+              regulation_type: value(form, "regulation_type"),
+              issuing_authority: value(form, "issuing_authority"),
+              effective_date: optionalValue(form, "effective_date"),
+              summary: value(form, "summary"),
+              file_url: null,
+            }))}>
+              <input name="title" placeholder="法规标题" />
+              <input name="regulation_type" placeholder="类型" defaultValue="regulation" />
+              <input name="issuing_authority" placeholder="发布单位" defaultValue="安全办公室" />
+              <input name="effective_date" type="date" />
+              <input name="summary" placeholder="摘要" />
+            </ActionForm>
+          ) : null}
+          {isAdmin ? (
+            <ActionForm title="录入事故案例" onSubmit={(form) => submitAction("录入事故案例", () => api.createIncident({
+              title: value(form, "title"),
+              lab_name: value(form, "lab_name"),
+              occurred_on: value(form, "occurred_on"),
+              severity: value(form, "severity"),
+              category: value(form, "category"),
+              root_cause: value(form, "root_cause"),
+              corrective_actions: value(form, "corrective_actions"),
+            }))}>
+              <input name="title" placeholder="案例标题" />
+              <input name="lab_name" placeholder="实验室" />
+              <input name="occurred_on" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+              <input name="severity" placeholder="严重程度" defaultValue="medium" />
+              <input name="category" placeholder="分类" />
+              <input name="root_cause" placeholder="根因" />
+              <input name="corrective_actions" placeholder="整改措施" />
+            </ActionForm>
+          ) : null}
+          <ActionForm title="上报隐患" onSubmit={(form) => submitAction("上报隐患", async () => {
+            const user = await ensureUser();
+            return api.createHazard({
+              title: value(form, "title"),
+              lab_name: value(form, "lab_name"),
+              category: value(form, "category"),
+              description: value(form, "description"),
+              reported_by: user.id,
+              issue_photo_url: null,
+            });
+          })}>
+            <input name="title" placeholder="隐患标题" />
+            <input name="lab_name" placeholder="实验室" />
+            <input name="category" placeholder="分类" />
+            <input name="description" placeholder="问题描述" />
+          </ActionForm>
+          {isAdmin ? (
+            <ActionForm title="创建培训" actionKey="training" onSubmit={(form) => submitAction("创建培训", () => api.createTraining({
+              title: value(form, "title"),
+              target_role: value(form, "target_role"),
+              status: value(form, "status"),
+              starts_on: optionalValue(form, "starts_on"),
+              exam_required_score: numberValue(form, "exam_required_score"),
+            }))}>
+              <input name="title" placeholder="培训标题" />
+              <input name="target_role" placeholder="目标角色" defaultValue="researcher" />
+              <input name="status" placeholder="状态" defaultValue="active" />
+              <input name="starts_on" type="date" />
+              <input name="exam_required_score" type="number" defaultValue="80" />
+            </ActionForm>
+          ) : null}
+          {isAdmin ? (
+            <ActionForm title="登记设备" onSubmit={(form) => submitAction("登记设备", () => api.createEquipment({
+              asset_code: value(form, "asset_code"),
+              name: value(form, "name"),
+              lab_name: value(form, "lab_name"),
+              status: value(form, "status"),
+              owner: optionalValue(form, "owner"),
+            }))}>
+              <input name="asset_code" placeholder="资产编号" />
+              <input name="name" placeholder="设备名称" />
+              <input name="lab_name" placeholder="实验室" />
+              <input name="status" placeholder="状态" defaultValue="available" />
+              <input name="owner" placeholder="负责人" />
+            </ActionForm>
+          ) : null}
+          <ActionForm title="预约设备" onSubmit={(form) => submitAction("创建设备预约", () => api.createBooking({
+            equipment_id: numberValue(form, "equipment_id"),
+            user_id: session.user.id,
+            starts_at: datetimeValue(form, "starts_at"),
+            ends_at: datetimeValue(form, "ends_at"),
+            purpose: value(form, "purpose"),
+          }))}>
+            <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
+              <option value="" disabled>选择设备</option>
+              {equipment.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <input name="starts_at" type="datetime-local" />
+            <input name="ends_at" type="datetime-local" />
+            <input name="purpose" placeholder="用途" />
+          </ActionForm>
+          <ActionForm title="提交报修" onSubmit={(form) => submitAction("提交报修", () => api.createRepair({
+            equipment_id: numberValue(form, "equipment_id"),
+            reported_by: session.user.id,
+            description: value(form, "description"),
+            status: "open",
+          }))}>
+            <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
+              <option value="" disabled>选择设备</option>
+              {equipment.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <input name="description" placeholder="故障描述" />
+          </ActionForm>
+          <ActionForm title="登记考核" onSubmit={(form) => submitAction("登记考核", () => api.createExamResult(
+            numberValue(form, "training_id"),
+            session.user.id,
+            numberValue(form, "score"),
+          ))}>
+            <select name="training_id" defaultValue={trainings[0]?.id ?? ""}>
+              <option value="" disabled>选择培训</option>
+              {trainings.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+            </select>
+            <input name="score" type="number" defaultValue="90" min="0" max="100" />
+          </ActionForm>
           <button onClick={() => withAction("责任认领", claimFirstHazard)}><FlaskConical size={16} />责任认领</button>
-          <button onClick={() => withAction("登记考核通过", async () => { const ids = await ensureTrainingAndUser(); return api.createExamResult(ids.trainingId, ids.userId); })}><FlaskConical size={16} />登记考核通过</button>
-          {isAdmin ? <button onClick={() => withAction("登记设备", api.createEquipment)}><FlaskConical size={16} />登记设备</button> : null}
-          <button onClick={() => withAction("创建设备预约", async () => { const ids = await ensureUserAndEquipment(); return api.createBooking(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />预约设备</button>
-          <button onClick={() => withAction("提交报修", async () => { const ids = await ensureUserAndEquipment(); return api.createRepair(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />提交报修</button>
           {isAdmin ? <label className="upload-button">
             <ClipboardList size={16} />
             上传法规文件
