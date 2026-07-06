@@ -753,7 +753,7 @@ body,
   padding-top: 0;
   padding-bottom: 0;
   background:
-    radial-gradient(circle at 92% 46%, rgba(22, 34, 33, 0.78), transparent 24%),
+    radial-gradient(circle at 92% 46%, rgba(33, 24, 20, 0.58), transparent 24%),
     radial-gradient(circle at 76% 60%, rgba(8, 47, 44, 0.34), transparent 32%),
     linear-gradient(90deg, #020303 0%, #020403 58%, #060a09 100%);
 }
@@ -768,41 +768,78 @@ body,
 }
 
 .login-hero::before {
-  background-image: radial-gradient(
-    circle,
-    rgba(223, 255, 248, 0.18) 0 1px,
-    transparent 1.5px
-  );
-  background-size: 11px 11px;
+  background-image:
+    radial-gradient(circle, rgba(255, 232, 202, 0.72) 0 1px, transparent 1.65px),
+    radial-gradient(circle, rgba(116, 255, 231, 0.26) 0 0.8px, transparent 1.45px),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 54%,
+      rgba(255, 188, 128, 0.1) 60%,
+      rgba(255, 236, 212, 0.34) 66%,
+      rgba(94, 234, 212, 0.16) 72%,
+      transparent 82%,
+      transparent 100%
+    );
+  background-position:
+    0 0,
+    4px 4px,
+    130% 0;
+  background-size:
+    10px 10px,
+    10px 10px,
+    190% 100%;
   mask-image: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.92),
-    rgba(0, 0, 0, 0.5) 72%,
-    rgba(0, 0, 0, 0.08)
+    rgba(0, 0, 0, 0.88),
+    rgba(0, 0, 0, 0.94) 52%,
+    rgba(0, 0, 0, 0.72) 78%,
+    rgba(0, 0, 0, 0.18)
   );
-  opacity: 0.3;
+  opacity: 0.58;
+  animation: matrixPulse 4.6s ease-in-out infinite;
 }
 
 .login-hero::after {
-  right: -10%;
+  right: -6%;
   left: auto;
-  width: 56%;
+  width: 72%;
   background:
-    radial-gradient(ellipse at 102% 18%, rgba(231, 255, 250, 0.16), transparent 22%),
-    radial-gradient(ellipse at 98% 48%, rgba(45, 212, 191, 0.15), transparent 28%),
-    radial-gradient(ellipse at 104% 82%, rgba(148, 163, 184, 0.16), transparent 26%),
-    conic-gradient(
-      from 92deg at 100% 52%,
-      transparent 0deg,
-      rgba(221, 255, 250, 0.04) 20deg,
-      rgba(94, 234, 212, 0.12) 52deg,
-      rgba(226, 232, 240, 0.08) 86deg,
-      transparent 128deg,
-      transparent 360deg
+    radial-gradient(circle, rgba(255, 236, 212, 0.86) 0 1.05px, transparent 1.7px),
+    radial-gradient(circle, rgba(255, 168, 112, 0.52) 0 0.9px, transparent 1.55px),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 38%,
+      rgba(255, 188, 128, 0.08) 43%,
+      rgba(255, 232, 202, 0.22) 49%,
+      rgba(94, 234, 212, 0.1) 55%,
+      transparent 63%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 188, 128, 0.08) 36%,
+      rgba(255, 236, 212, 0.22) 62%,
+      rgba(255, 245, 230, 0.34) 78%,
+      transparent 100%
     );
-  filter: blur(24px);
-  mask-image: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.55) 32%, #000 100%);
-  opacity: 0.82;
+  background-position:
+    0 0,
+    4px 4px,
+    0 0,
+    0 0;
+  background-size:
+    8px 8px,
+    8px 8px,
+    100% 100%,
+    100% 100%;
+  filter: drop-shadow(0 0 18px rgba(255, 188, 128, 0.16));
+  mask-image:
+    linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.22) 24%, rgba(0, 0, 0, 0.9) 100%),
+    radial-gradient(ellipse at 68% 51%, #000 0%, #000 24%, transparent 58%);
+  opacity: 0.78;
   transform-origin: right center;
   animation: loginEnergy 7.8s ease-in-out infinite;
 }
@@ -858,16 +895,41 @@ body,
 @keyframes loginEnergy {
   0%,
   100% {
-    opacity: 0.62;
-    transform: translateX(4%) scaleX(0.9) skewY(-2deg);
+    opacity: 0.54;
+    transform: translateX(6%) scaleX(0.92) skewY(-1deg);
   }
   46% {
-    opacity: 0.94;
-    transform: translateX(-12%) scaleX(1.12) skewY(2deg);
+    opacity: 0.9;
+    transform: translateX(-18%) scaleX(1.18) skewY(1.4deg);
   }
   68% {
-    opacity: 0.72;
-    transform: translateX(-6%) scaleX(1.02) skewY(-1deg);
+    opacity: 0.7;
+    transform: translateX(-8%) scaleX(1.05) skewY(-0.8deg);
+  }
+}
+
+@keyframes matrixPulse {
+  0%,
+  100% {
+    background-position:
+      0 0,
+      4px 4px,
+      130% 0;
+    opacity: 0.46;
+  }
+  42% {
+    background-position:
+      10px 0,
+      14px 4px,
+      48% 0;
+    opacity: 0.76;
+  }
+  68% {
+    background-position:
+      20px 0,
+      24px 4px,
+      18% 0;
+    opacity: 0.56;
   }
 }
 
@@ -891,6 +953,7 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .login-carousel,
+  .login-hero::before,
   .login-hero::after {
     animation: none;
   }
