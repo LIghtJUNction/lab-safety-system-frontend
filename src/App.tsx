@@ -179,6 +179,10 @@ const loginCopy = {
     oauth: "OAuth 授权登录",
     ssoDisabled: "SSO 未配置",
     oauthDisabled: "OAuth 未配置",
+    adminPasswordHint:
+      "管理员密码不在页面展示。请到服务器终端执行以下命令生成并重置密码：",
+    adminPasswordCommand:
+      "lab-safety-system users set-password --actor admin --actor-password '<超级管理员强密码>' --username admin --generate-password true",
     help: "首次部署请使用命令行工具创建超级管理员账号。命令行用户管理只允许超级管理员执行。",
     source: "源代码仓库",
     license:
@@ -201,6 +205,10 @@ const loginCopy = {
     oauth: "OAuth sign in",
     ssoDisabled: "SSO not configured",
     oauthDisabled: "OAuth not configured",
+    adminPasswordHint:
+      "Admin passwords are not shown in the browser. Run this command in the server terminal to generate and reset the password:",
+    adminPasswordCommand:
+      "lab-safety-system users set-password --actor admin --actor-password '<super-admin-password>' --username admin --generate-password true",
     help: "Create the first super administrator with the CLI. CLI user management is restricted to super administrators.",
     source: "Source repository",
     license:
@@ -553,6 +561,10 @@ function LoginScreen({
                 <Fingerprint size={15} />
                 {text.passkey}
               </button>
+            </span>
+            <span className="password-hint">
+              {text.adminPasswordHint}
+              <code>{text.adminPasswordCommand}</code>
             </span>
           </label>
           <button disabled={submitting || !authMethods.password}>
