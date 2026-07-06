@@ -1037,7 +1037,7 @@ export function App() {
         is_active: true,
       };
     }
-    return users[0] ?? api.createUser();
+    throw new Error("请先登录后再操作");
   }
 
   async function createHazardWithOptionalPhoto(file?: File) {
