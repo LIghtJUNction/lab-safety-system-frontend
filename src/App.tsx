@@ -6,14 +6,19 @@ import {
   CheckCircle2,
   ClipboardList,
   Download,
+  Fingerprint,
   FlaskConical,
+  Github,
   GraduationCap,
   KeyRound,
+  Languages,
   LayoutDashboard,
   LogIn,
   LogOut,
+  Moon,
   Search,
   ShieldCheck,
+  Sun,
   UserCog,
   Wrench,
 } from "lucide-react";
@@ -40,6 +45,7 @@ import {
   SafetyHazard,
   Training,
   User,
+  UserCreate,
 } from "./api";
 
 const nav = [
@@ -151,6 +157,98 @@ function ActionForm({
 }
 
 const SESSION_KEY = "lab-safety-session";
+const THEME_KEY = "lab-safety-theme";
+const LANGUAGE_KEY = "lab-safety-language";
+const SOURCE_REPO = "https://github.com/LIghtJUNction/lab-safety-system";
+type Language = "zh" | "en";
+type ThemeMode = "light" | "dark";
+
+const loginCopy = {
+  zh: {
+    notice: "请使用账号密码登录，或选择已配置的统一身份入口。",
+    loggingIn: "正在登录",
+    loginOk: "登录成功",
+    loginFail: "登录失败",
+    passkeyStart: "正在请求 Passkey",
+    passkeyUnavailable: "当前浏览器不支持 Passkey",
+    username: "用户名",
+    password: "密码",
+    passwordLogin: "账号密码登录",
+    passkey: "使用 Passkey",
+    sso: "SSO 单点登录",
+    oauth: "OAuth 授权登录",
+    ssoDisabled: "SSO 未配置",
+    oauthDisabled: "OAuth 未配置",
+    help: "首次部署请使用命令行工具创建超级管理员账号。命令行用户管理只允许超级管理员执行。",
+    source: "源代码仓库",
+    license:
+      "开源许可：GPL-3.0-only。按现状提供，不附带任何担保；部署者需自行负责数据安全、账号策略和合规要求。",
+    title: "登录系统",
+    brandSub: "实验室安全管理",
+  },
+  en: {
+    notice: "Sign in with password or a configured identity provider.",
+    loggingIn: "Signing in",
+    loginOk: "Signed in",
+    loginFail: "Sign-in failed",
+    passkeyStart: "Requesting passkey",
+    passkeyUnavailable: "Passkey is not supported by this browser",
+    username: "Username",
+    password: "Password",
+    passwordLogin: "Password sign in",
+    passkey: "Use Passkey",
+    sso: "SSO sign in",
+    oauth: "OAuth sign in",
+    ssoDisabled: "SSO not configured",
+    oauthDisabled: "OAuth not configured",
+    help: "Create the first super administrator with the CLI. CLI user management is restricted to super administrators.",
+    source: "Source repository",
+    license:
+      "License: GPL-3.0-only. Provided as-is, without warranty. Operators are responsible for data security, account policy, and compliance.",
+    title: "Sign in",
+    brandSub: "Laboratory Safety",
+  },
+} satisfies Record<Language, Record<string, string>>;
+
+const introSlides = {
+  zh: [
+    {
+      title: "实验室安全隐患闭环平台",
+      body: "统一处理隐患上报、责任认领、整改照片、培训考核、设备预约和报修工单。",
+      stat: "隐患闭环",
+    },
+    {
+      title: "管理端与普通用户分离",
+      body: "管理员聚合统计、用户和台账；普通用户只处理自己的上报、认领与整改任务。",
+      stat: "分角色视图",
+    },
+    {
+      title: "支持多种身份入口",
+      body: "账号密码、Passkey、SSO 和 OAuth 可按部署环境组合使用，超级管理员仍由 CLI 控制。",
+      stat: "安全登录",
+    },
+  ],
+  en: [
+    {
+      title: "Closed-loop lab safety platform",
+      body: "Track hazards, ownership, remediation photos, training, bookings, and repair tickets in one workflow.",
+      stat: "Hazard closure",
+    },
+    {
+      title: "Separate admin and user views",
+      body: "Administrators manage analytics and registries; normal users focus on their own reports and remediation tasks.",
+      stat: "Role-based UI",
+    },
+    {
+      title: "Multiple identity options",
+      body: "Password, Passkey, SSO, and OAuth can be combined per deployment while super admins stay CLI-governed.",
+      stat: "Secure sign-in",
+    },
+  ],
+} satisfies Record<
+  Language,
+  Array<{ title: string; body: string; stat: string }>
+>;
 
 function readFederatedSession() {
   const marker = "#session=";
@@ -194,33 +292,170 @@ function readSession() {
   }
 }
 
+function validateStrongPassword(password: string) {
+  if (password.length < 12) return false;
+  return (
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
+
+function base64UrlToBuffer(value: string) {
+  const padded = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
+  return Uint8Array.from(window.atob(padded), (char) => char.charCodeAt(0))
+    .buffer;
+}
+
+function bufferToBase64Url(value: ArrayBuffer) {
+  const bytes = new Uint8Array(value);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window
+    .btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function credentialToJson(value: unknown): unknown {
+  if (value instanceof ArrayBuffer) return bufferToBase64Url(value);
+  if (ArrayBuffer.isView(value)) {
+    return bufferToBase64Url(
+      new Uint8Array(value.buffer, value.byteOffset, value.byteLength).slice()
+        .buffer,
+    );
+  }
+  if (Array.isArray(value)) return value.map(credentialToJson);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        credentialToJson(entry),
+      ]),
+    );
+  }
+  return value;
+}
+
+function publicKeyCredentialToJson(credential: Credential) {
+  const publicKey = credential as PublicKeyCredential;
+  return credentialToJson({
+    id: publicKey.id,
+    rawId: publicKey.rawId,
+    type: publicKey.type,
+    response: publicKey.response,
+  });
+}
+
+function creationOptionsFromServer(
+  options: PublicKeyCredentialCreationOptions,
+): PublicKeyCredentialCreationOptions {
+  return {
+    ...options,
+    challenge: base64UrlToBuffer(options.challenge as unknown as string),
+    user: {
+      ...options.user,
+      id: base64UrlToBuffer(options.user.id as unknown as string),
+    },
+    excludeCredentials: options.excludeCredentials?.map((credential) => ({
+      ...credential,
+      id: base64UrlToBuffer(credential.id as unknown as string),
+    })),
+  };
+}
+
+function requestOptionsFromServer(
+  options: PublicKeyCredentialRequestOptions,
+): PublicKeyCredentialRequestOptions {
+  return {
+    ...options,
+    challenge: base64UrlToBuffer(options.challenge as unknown as string),
+    allowCredentials: options.allowCredentials?.map((credential) => ({
+      ...credential,
+      id: base64UrlToBuffer(credential.id as unknown as string),
+    })),
+  };
+}
+
 function LoginScreen({
   authMethods,
+  language,
+  setLanguage,
+  theme,
+  setTheme,
   onLogin,
 }: {
   authMethods: AuthMethods;
+  language: Language;
+  setLanguage: (language: Language) => void;
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
   onLogin: (session: AuthSession) => void;
 }) {
+  const text = loginCopy[language];
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
-  const [notice, setNotice] = useState(
-    "请使用账号密码登录，或选择已配置的统一身份入口。",
-  );
+  const [notice, setNotice] = useState(text.notice);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setNotice(text.notice);
+  }, [text.notice]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
-    setNotice("正在登录");
+    setNotice(text.loggingIn);
     try {
       const session = await api.passwordLogin(username, password);
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       api.setAccessToken(session.access_token);
       onLogin(session);
-      setNotice("登录成功");
+      setNotice(text.loginOk);
     } catch (error) {
       setNotice(
-        error instanceof Error ? `登录失败：${error.message}` : "登录失败",
+        error instanceof Error
+          ? `${text.loginFail}: ${error.message}`
+          : text.loginFail,
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function passkeyLogin() {
+    if (!window.PublicKeyCredential) {
+      setNotice(text.passkeyUnavailable);
+      return;
+    }
+    setSubmitting(true);
+    setNotice(text.passkeyStart);
+    try {
+      const challenge = await api.passkeyLoginStart(username);
+      const credential = await navigator.credentials.get({
+        publicKey: requestOptionsFromServer(challenge.options),
+      });
+      if (!credential) throw new Error("Passkey cancelled");
+      const session = await api.passkeyLoginFinish(
+        challenge.challenge_id,
+        publicKeyCredentialToJson(credential),
+      );
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      api.setAccessToken(session.access_token);
+      onLogin(session);
+      setNotice(text.loginOk);
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? `${text.loginFail}: ${error.message}`
+          : text.loginFail,
       );
     } finally {
       setSubmitting(false);
@@ -230,33 +465,70 @@ function LoginScreen({
   return (
     <main className="login-page">
       <section className="login-hero">
-        <div className="brand">
-          <div className="brand-mark">
-            <ShieldCheck size={22} />
-          </div>
-          <div>
-            <strong>LabSafe</strong>
-            <span>实验室安全管理</span>
-          </div>
+        <div className="login-carousel">
+          {introSlides[language].map((slide) => (
+            <article className="intro-slide" key={slide.title}>
+              <div className="brand">
+                <div className="brand-mark">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <strong>LabSafe</strong>
+                  <span>{text.brandSub}</span>
+                </div>
+              </div>
+              <span className="intro-stat">{slide.stat}</span>
+              <h1>{slide.title}</h1>
+              <p>{slide.body}</p>
+            </article>
+          ))}
+          {introSlides[language].map((slide) => (
+            <article className="intro-slide" key={`${slide.title}-copy`}>
+              <div className="brand">
+                <div className="brand-mark">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <strong>LabSafe</strong>
+                  <span>{text.brandSub}</span>
+                </div>
+              </div>
+              <span className="intro-stat">{slide.stat}</span>
+              <h1>{slide.title}</h1>
+              <p>{slide.body}</p>
+            </article>
+          ))}
         </div>
-        <h1>实验室安全隐患闭环平台</h1>
-        <p>
-          统一处理隐患上报、责任认领、整改照片、培训考核、设备预约和报修工单。
-        </p>
       </section>
 
       <section className="login-panel">
+        <div className="login-tools">
+          <button
+            type="button"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
+            {theme === "light" ? "Dark" : "Light"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
+          >
+            <Languages size={15} />
+            {language === "zh" ? "English" : "中文"}
+          </button>
+        </div>
         <div className="login-title">
           <KeyRound size={26} />
           <div>
-            <h2>登录系统</h2>
+            <h2>{text.title}</h2>
             <p>{notice}</p>
           </div>
         </div>
 
         <form onSubmit={submit} className="login-form">
           <label>
-            用户名
+            {text.username}
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
@@ -264,17 +536,28 @@ function LoginScreen({
             />
           </label>
           <label>
-            密码
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              autoComplete="current-password"
-            />
+            {text.password}
+            <span className="password-line">
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="passkey-inline"
+                disabled={submitting || !username.trim()}
+                onClick={passkeyLogin}
+              >
+                <Fingerprint size={15} />
+                {text.passkey}
+              </button>
+            </span>
           </label>
           <button disabled={submitting || !authMethods.password}>
             <LogIn size={17} />
-            {submitting ? "登录中" : "账号密码登录"}
+            {submitting ? text.loggingIn : text.passwordLogin}
           </button>
         </form>
 
@@ -287,7 +570,7 @@ function LoginScreen({
               window.location.assign(authMethods.sso_login_url)
             }
           >
-            {authMethods.sso ? "SSO 单点登录" : "SSO 未配置"}
+            {authMethods.sso ? text.sso : text.ssoDisabled}
           </button>
           <button
             type="button"
@@ -297,19 +580,30 @@ function LoginScreen({
               window.location.assign(authMethods.oauth_login_url)
             }
           >
-            {authMethods.oauth ? "OAuth 授权登录" : "OAuth 未配置"}
+            {authMethods.oauth ? text.oauth : text.oauthDisabled}
           </button>
         </div>
 
-        <p className="login-help">
-          首次部署请使用命令行工具创建超级管理员账号。命令行用户管理只允许超级管理员执行。
-        </p>
+        <p className="login-help">{text.help}</p>
+        <div className="login-legal">
+          <a href={SOURCE_REPO} target="_blank" rel="noreferrer">
+            <Github size={15} />
+            {text.source}
+          </a>
+          <span>{text.license}</span>
+        </div>
       </section>
     </main>
   );
 }
 
 export function App() {
+  const [language, setLanguageState] = useState<Language>(
+    () => (window.localStorage.getItem(LANGUAGE_KEY) as Language) || "zh",
+  );
+  const [theme, setThemeState] = useState<ThemeMode>(
+    () => (window.localStorage.getItem(THEME_KEY) as ThemeMode) || "light",
+  );
   const [active, setActive] = useState("总览");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -344,6 +638,21 @@ export function App() {
   const lastActionAt = useRef(0);
   const isAdmin =
     session?.user.role === "admin" || session?.user.role === "super_admin";
+
+  function setLanguage(language: Language) {
+    setLanguageState(language);
+    window.localStorage.setItem(LANGUAGE_KEY, language);
+  }
+
+  function setTheme(theme: ThemeMode) {
+    setThemeState(theme);
+    window.localStorage.setItem(THEME_KEY, theme);
+  }
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  }, [theme, language]);
 
   async function refresh(search = query, options?: { silent?: boolean }) {
     setLoading(true);
@@ -642,6 +951,31 @@ export function App() {
     return new Date(value(form, key)).toISOString();
   }
 
+  function userCreateValue(form: FormData): UserCreate {
+    const authProvider = value(
+      form,
+      "auth_provider",
+    ) as UserCreate["auth_provider"];
+    const password = optionalValue(form, "password") ?? undefined;
+    if (authProvider === "password") {
+      if (!password) {
+        throw new Error("password 不能为空");
+      }
+      if (!validateStrongPassword(password)) {
+        throw new Error("密码至少 12 位，并包含大小写字母、数字和符号");
+      }
+    }
+    return {
+      username: value(form, "username"),
+      display_name: value(form, "display_name"),
+      email: value(form, "email"),
+      role: value(form, "role") as UserCreate["role"],
+      auth_provider: authProvider,
+      department: optionalValue(form, "department"),
+      password,
+    };
+  }
+
   async function ensureUserAndEquipment() {
     const device =
       equipment[0] ??
@@ -744,6 +1078,22 @@ export function App() {
     return api.submitHazardRemediation(hazard.id, upload.url);
   }
 
+  async function bindPasskey() {
+    if (!window.PublicKeyCredential) {
+      throw new Error("当前浏览器不支持 Passkey");
+    }
+    const challenge = await api.passkeyRegisterStart();
+    const credential = await navigator.credentials.create({
+      publicKey: creationOptionsFromServer(challenge.options),
+    });
+    if (!credential) throw new Error("Passkey 绑定已取消");
+    return api.passkeyRegisterFinish(
+      challenge.challenge_id,
+      publicKeyCredentialToJson(credential),
+      `${session!.user.display_name} Passkey`,
+    );
+  }
+
   const visibleNav = isAdmin
     ? nav
     : nav.filter(
@@ -764,7 +1114,16 @@ export function App() {
   const showAnalytics = showOverview || active === "统计分析";
 
   if (!session) {
-    return <LoginScreen authMethods={authMethods} onLogin={setSession} />;
+    return (
+      <LoginScreen
+        authMethods={authMethods}
+        language={language}
+        setLanguage={setLanguage}
+        theme={theme}
+        setTheme={setTheme}
+        onLogin={setSession}
+      />
+    );
   }
 
   return (
@@ -812,6 +1171,10 @@ export function App() {
                   ? "管理员"
                   : "普通用户"}
             </strong>
+            <button onClick={() => withAction("绑定 Passkey", bindPasskey)}>
+              <Fingerprint size={16} />
+              Passkey
+            </button>
             <button
               onClick={() => {
                 api.setAccessToken(null);
@@ -985,7 +1348,7 @@ export function App() {
         </section>
 
         <section className="quick-actions">
-          {isAdmin ? (
+          {isAdmin && showRegulations ? (
             <ActionForm
               title="创建法规"
               onSubmit={(form) =>
@@ -1016,7 +1379,7 @@ export function App() {
               <input name="summary" placeholder="摘要" />
             </ActionForm>
           ) : null}
-          {isAdmin ? (
+          {isAdmin && showIncidents ? (
             <ActionForm
               title="录入事故案例"
               onSubmit={(form) =>
@@ -1050,28 +1413,30 @@ export function App() {
               <input name="corrective_actions" placeholder="整改措施" />
             </ActionForm>
           ) : null}
-          <ActionForm
-            title="上报隐患"
-            onSubmit={(form) =>
-              submitAction("上报隐患", async () => {
-                const user = await ensureUser();
-                return api.createHazard({
-                  title: value(form, "title"),
-                  lab_name: value(form, "lab_name"),
-                  category: value(form, "category"),
-                  description: value(form, "description"),
-                  reported_by: user.id,
-                  issue_photo_url: null,
-                });
-              })
-            }
-          >
-            <input name="title" placeholder="隐患标题" />
-            <input name="lab_name" placeholder="实验室" />
-            <input name="category" placeholder="分类" />
-            <input name="description" placeholder="问题描述" />
-          </ActionForm>
-          {isAdmin ? (
+          {showHazards ? (
+            <ActionForm
+              title="上报隐患"
+              onSubmit={(form) =>
+                submitAction("上报隐患", async () => {
+                  const user = await ensureUser();
+                  return api.createHazard({
+                    title: value(form, "title"),
+                    lab_name: value(form, "lab_name"),
+                    category: value(form, "category"),
+                    description: value(form, "description"),
+                    reported_by: user.id,
+                    issue_photo_url: null,
+                  });
+                })
+              }
+            >
+              <input name="title" placeholder="隐患标题" />
+              <input name="lab_name" placeholder="实验室" />
+              <input name="category" placeholder="分类" />
+              <input name="description" placeholder="问题描述" />
+            </ActionForm>
+          ) : null}
+          {isAdmin && showTrainings ? (
             <ActionForm
               title="创建培训"
               actionKey="training"
@@ -1105,7 +1470,7 @@ export function App() {
               />
             </ActionForm>
           ) : null}
-          {isAdmin ? (
+          {isAdmin && showEquipment ? (
             <ActionForm
               title="登记设备"
               onSubmit={(form) =>
@@ -1131,94 +1496,132 @@ export function App() {
               <input name="owner" placeholder="负责人" />
             </ActionForm>
           ) : null}
-          <ActionForm
-            title="预约设备"
-            onSubmit={(form) =>
-              submitAction("创建设备预约", () =>
-                api.createBooking({
-                  equipment_id: numberValue(form, "equipment_id"),
-                  user_id: session.user.id,
-                  starts_at: datetimeValue(form, "starts_at"),
-                  ends_at: datetimeValue(form, "ends_at"),
-                  purpose: value(form, "purpose"),
-                }),
-              )
-            }
-          >
-            <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
-              <option value="" disabled>
-                选择设备
-              </option>
-              {equipment.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
+          {showEquipment ? (
+            <ActionForm
+              title="预约设备"
+              onSubmit={(form) =>
+                submitAction("创建设备预约", () =>
+                  api.createBooking({
+                    equipment_id: numberValue(form, "equipment_id"),
+                    user_id: session.user.id,
+                    starts_at: datetimeValue(form, "starts_at"),
+                    ends_at: datetimeValue(form, "ends_at"),
+                    purpose: value(form, "purpose"),
+                  }),
+                )
+              }
+            >
+              <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
+                <option value="" disabled>
+                  选择设备
                 </option>
-              ))}
-            </select>
-            <input name="starts_at" type="datetime-local" />
-            <input name="ends_at" type="datetime-local" />
-            <input name="purpose" placeholder="用途" />
-          </ActionForm>
-          <ActionForm
-            title="提交报修"
-            onSubmit={(form) =>
-              submitAction("提交报修", () =>
-                api.createRepair({
-                  equipment_id: numberValue(form, "equipment_id"),
-                  reported_by: session.user.id,
-                  description: value(form, "description"),
-                  status: "open",
-                }),
-              )
-            }
-          >
-            <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
-              <option value="" disabled>
-                选择设备
-              </option>
-              {equipment.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
+                {equipment.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <input name="starts_at" type="datetime-local" />
+              <input name="ends_at" type="datetime-local" />
+              <input name="purpose" placeholder="用途" />
+            </ActionForm>
+          ) : null}
+          {showRepairs ? (
+            <ActionForm
+              title="提交报修"
+              onSubmit={(form) =>
+                submitAction("提交报修", () =>
+                  api.createRepair({
+                    equipment_id: numberValue(form, "equipment_id"),
+                    reported_by: session.user.id,
+                    description: value(form, "description"),
+                    status: "open",
+                  }),
+                )
+              }
+            >
+              <select name="equipment_id" defaultValue={equipment[0]?.id ?? ""}>
+                <option value="" disabled>
+                  选择设备
                 </option>
-              ))}
-            </select>
-            <input name="description" placeholder="故障描述" />
-          </ActionForm>
-          <ActionForm
-            title="登记考核"
-            onSubmit={(form) =>
-              submitAction("登记考核", () =>
-                api.createExamResult(
-                  numberValue(form, "training_id"),
-                  session.user.id,
-                  numberValue(form, "score"),
-                ),
-              )
-            }
-          >
-            <select name="training_id" defaultValue={trainings[0]?.id ?? ""}>
-              <option value="" disabled>
-                选择培训
-              </option>
-              {trainings.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title}
+                {equipment.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <input name="description" placeholder="故障描述" />
+            </ActionForm>
+          ) : null}
+          {showTrainings ? (
+            <ActionForm
+              title="登记考核"
+              onSubmit={(form) =>
+                submitAction("登记考核", () =>
+                  api.createExamResult(
+                    numberValue(form, "training_id"),
+                    session.user.id,
+                    numberValue(form, "score"),
+                  ),
+                )
+              }
+            >
+              <select name="training_id" defaultValue={trainings[0]?.id ?? ""}>
+                <option value="" disabled>
+                  选择培训
                 </option>
-              ))}
-            </select>
-            <input
-              name="score"
-              type="number"
-              defaultValue="90"
-              min="0"
-              max="100"
-            />
-          </ActionForm>
-          <button onClick={() => withAction("责任认领", claimFirstHazard)}>
-            <FlaskConical size={16} />
-            责任认领
-          </button>
-          {isAdmin ? (
+                {trainings.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                name="score"
+                type="number"
+                defaultValue="90"
+                min="0"
+                max="100"
+              />
+            </ActionForm>
+          ) : null}
+          {isAdmin && showUsers ? (
+            <ActionForm
+              title="创建用户"
+              onSubmit={(form) =>
+                submitAction("创建用户", () =>
+                  api.createUser(userCreateValue(form)),
+                )
+              }
+            >
+              <input name="username" placeholder="用户名" />
+              <input name="display_name" placeholder="显示名" />
+              <input name="email" type="email" placeholder="邮箱" />
+              <select name="role" defaultValue="researcher">
+                <option value="researcher">普通用户</option>
+                <option value="admin">管理员</option>
+              </select>
+              <select name="auth_provider" defaultValue="password">
+                <option value="password">账号密码</option>
+                <option value="sso">SSO</option>
+                <option value="oauth">OAuth</option>
+              </select>
+              <input name="department" placeholder="部门/实验室" />
+              <input
+                name="password"
+                type="password"
+                placeholder="强密码，密码登录必填"
+                autoComplete="new-password"
+              />
+            </ActionForm>
+          ) : null}
+          {showHazards ? (
+            <button onClick={() => withAction("责任认领", claimFirstHazard)}>
+              <FlaskConical size={16} />
+              责任认领
+            </button>
+          ) : null}
+          {isAdmin && showRegulations ? (
             <label className="upload-button">
               <ClipboardList size={16} />
               上传法规文件
@@ -1234,7 +1637,7 @@ export function App() {
               />
             </label>
           ) : null}
-          {isAdmin ? (
+          {isAdmin && showIncidents ? (
             <label className="upload-button">
               <AlertTriangle size={16} />
               上传案例附件
@@ -1250,36 +1653,40 @@ export function App() {
               />
             </label>
           ) : null}
-          <label className="upload-button">
-            <ShieldCheck size={16} />
-            上传问题照片
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file)
-                  void withAction("上传问题照片并上报隐患", () =>
-                    createHazardWithOptionalPhoto(file),
-                  );
-              }}
-            />
-          </label>
-          <label className="upload-button">
-            <Wrench size={16} />
-            上传整改照片
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file)
-                  void withAction("上传整改照片", () =>
-                    remediateFirstHazard(file),
-                  );
-              }}
-            />
-          </label>
+          {showHazards ? (
+            <label className="upload-button">
+              <ShieldCheck size={16} />
+              上传问题照片
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file)
+                    void withAction("上传问题照片并上报隐患", () =>
+                      createHazardWithOptionalPhoto(file),
+                    );
+                }}
+              />
+            </label>
+          ) : null}
+          {showHazards ? (
+            <label className="upload-button">
+              <Wrench size={16} />
+              上传整改照片
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file)
+                    void withAction("上传整改照片", () =>
+                      remediateFirstHazard(file),
+                    );
+                }}
+              />
+            </label>
+          ) : null}
         </section>
       </section>
     </main>

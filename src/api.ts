@@ -136,6 +136,25 @@ export type HazardCreate = Omit<
   | "remediation_photo_url"
   | "remediation_note"
 >;
+export type UserCreate = {
+  username: string;
+  display_name: string;
+  email: string;
+  role: "admin" | "researcher";
+  auth_provider: "password" | "sso" | "oauth";
+  department?: string | null;
+  password?: string;
+};
+export type PasskeyChallenge<T> = {
+  challenge_id: string;
+  options: T;
+};
+export type PasskeySummary = {
+  id: number;
+  name: string;
+  created_at: string;
+  last_used_at: string | null;
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(
@@ -167,6 +186,41 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  passkeyLoginStart: (username: string) =>
+    request<PasskeyChallenge<PublicKeyCredentialRequestOptions>>(
+      "/auth/passkey/login/start",
+      {
+        method: "POST",
+        body: JSON.stringify({ username }),
+      },
+    ),
+  passkeyLoginFinish: (challengeId: string, credential: unknown) =>
+    request<AuthSession>("/auth/passkey/login/finish", {
+      method: "POST",
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        credential,
+      }),
+    }),
+  passkeyRegisterStart: () =>
+    request<PasskeyChallenge<PublicKeyCredentialCreationOptions>>(
+      "/auth/passkey/register/start",
+      { method: "POST" },
+    ),
+  passkeyRegisterFinish: (
+    challengeId: string,
+    credential: unknown,
+    name = "Passkey",
+  ) =>
+    request<PasskeySummary>("/auth/passkey/register/finish", {
+      method: "POST",
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        name,
+        credential,
+      }),
+    }),
+  passkeys: () => request<PasskeySummary[]>("/auth/passkeys"),
   me: () => request<AuthUser>("/auth/me"),
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
@@ -211,18 +265,20 @@ export const api = {
         status: score >= 60 ? "passed" : "failed",
       }),
     }),
-  createUser: () =>
+  createUser: (payload?: UserCreate) =>
     request<User>("/users", {
       method: "POST",
-      body: JSON.stringify({
-        username: `user_${Date.now()}`,
-        display_name: "新实验员",
-        email: `user_${Date.now()}@example.com`,
-        role: "researcher",
-        auth_provider: "password",
-        department: "公共实验平台",
-        password: `Strong-${Date.now()}!Aa1`,
-      }),
+      body: JSON.stringify(
+        payload ?? {
+          username: `user_${Date.now()}`,
+          display_name: "新实验员",
+          email: `user_${Date.now()}@example.com`,
+          role: "researcher",
+          auth_provider: "password",
+          department: "公共实验平台",
+          password: `Strong-${Date.now()}!Aa1`,
+        },
+      ),
     }),
   createEquipment: (payload: EquipmentCreate) =>
     request<Equipment>("/equipment", {
