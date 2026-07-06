@@ -162,4 +162,12 @@ export const api = {
       body: form,
     });
   },
+  uploadIncident: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{ url: string; filename: string; size: number }>("/incidents/upload", {
+      method: "POST",
+      body: form,
+    });
+  },
 };

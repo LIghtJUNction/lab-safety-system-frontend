@@ -250,6 +250,14 @@ export function App() {
               if (file) void withAction("上传法规文件", () => api.uploadRegulation(file));
             }} />
           </label>
+          <label className="upload-button">
+            <AlertTriangle size={16} />
+            上传案例附件
+            <input type="file" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void withAction("上传案例附件", () => api.uploadIncident(file));
+            }} />
+          </label>
         </section>
       </section>
     </main>
