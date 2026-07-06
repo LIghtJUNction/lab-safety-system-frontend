@@ -16,6 +16,67 @@ export const THEME_KEY = "lab-safety-theme";
 export const LANGUAGE_KEY = "lab-safety-language";
 export const SOURCE_REPO = "https://github.com/LIghtJUNction/lab-safety-system";
 
+const CUSTOM_SLIDES_KEY = "lab-safety-custom-slides";
+
+export type CarouselSlide = {
+  title: string;
+  body: string;
+  stat: string;
+};
+
+export function getCustomSlides(lang: Language): CarouselSlide[] | null {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SLIDES_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const val = parsed?.[lang];
+    if (Array.isArray(val) && val.length > 0) {
+      return val.map((s: any) => ({
+        title: String(s.title || ""),
+        body: String(s.body || ""),
+        stat: String(s.stat || ""),
+      }));
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCustomSlides(lang: Language, slides: CarouselSlide[]) {
+  try {
+    const raw = localStorage.getItem(CUSTOM_SLIDES_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    all[lang] = slides;
+    localStorage.setItem(CUSTOM_SLIDES_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
+export function resetCustomSlides(lang?: Language) {
+  try {
+    if (lang) {
+      const raw = localStorage.getItem(CUSTOM_SLIDES_KEY);
+      if (raw) {
+        const all = JSON.parse(raw);
+        delete all[lang];
+        localStorage.setItem(CUSTOM_SLIDES_KEY, JSON.stringify(all));
+      }
+    } else {
+      localStorage.removeItem(CUSTOM_SLIDES_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getEffectiveSlides(lang: Language): CarouselSlide[] {
+  const custom = getCustomSlides(lang);
+  if (custom && custom.length) return custom;
+  return introSlides[lang];
+}
+
 export const nav = [
   { label: "总览", icon: LayoutDashboard },
   { label: "法规条例", icon: ClipboardList },

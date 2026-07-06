@@ -15,9 +15,9 @@ export function AnalyticsPanel({
   const max = Math.max(...items.map((i) => i.count), 1);
 
   return (
-    <section className="panel analysis rounded-2xl border border-slate-100 bg-white/90 p-5 shadow-sm backdrop-blur-md">
+    <section className="panel analysis rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/70">
       <div className="panel-title flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
         <button
           type="button"
           onClick={onExport}
@@ -30,8 +30,8 @@ export function AnalyticsPanel({
       <div className="bars mt-5 space-y-3">
         {items.map((item, index) => (
           <div className="bar-line flex items-center gap-3" key={item.name}>
-            <span className="w-20 shrink-0 text-xs text-slate-500">{item.name}</span>
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+            <span className="w-20 shrink-0 text-xs text-stone-500 dark:text-stone-400">{item.name}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
               <i
                 className="block h-full rounded-full transition-all duration-500"
                 style={{
@@ -40,7 +40,7 @@ export function AnalyticsPanel({
                 }}
               />
             </div>
-            <strong className="w-8 text-right font-mono text-xs text-slate-700">
+            <strong className="w-8 text-right font-mono text-xs text-stone-700 dark:text-stone-300">
               {item.count}
             </strong>
           </div>

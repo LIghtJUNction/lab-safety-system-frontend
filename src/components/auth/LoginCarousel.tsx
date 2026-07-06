@@ -1,18 +1,28 @@
-import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { introSlides } from "../../lib/constants";
 import { cn } from "../../lib/cn";
 import { Language } from "../../lib/types";
 
+export type CarouselSlide = { stat: string; title: string; body: string };
+
 export function LoginCarousel({
   language,
   isDark = true,
+  slidesOverride,
 }: {
   language: Language;
   isDark?: boolean;
+  slidesOverride?: CarouselSlide[];
 }) {
-  const slides = introSlides[language];
+  // Prefer backend override (fetched on login page); fallback to built-in defaults
+  const slides: CarouselSlide[] =
+    slidesOverride && slidesOverride.length > 0 ? slidesOverride : introSlides[language];
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Reset index if slides change (e.g. custom edit preview)
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [slides.length, slides[0]?.title]);
 
   // Auto rotate
   useEffect(() => {

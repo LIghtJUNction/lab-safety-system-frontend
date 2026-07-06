@@ -21,14 +21,14 @@ export function AlertFeed({
   onConfirm: (hazard: SafetyHazard) => void;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm backdrop-blur-md">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h2 className="text-sm font-semibold text-slate-900">实时警报</h2>
-        <p className="mt-0.5 text-xs text-slate-400">最新安全隐患流水</p>
+    <section className="rounded-2xl border border-stone-100 bg-white/90 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
+      <div className="border-b border-stone-100 px-5 py-4 dark:border-stone-800">
+        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">实时警报</h2>
+        <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">最新安全隐患流水</p>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-stone-100 dark:divide-stone-800">
         {alerts.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-slate-400">
+          <p className="px-5 py-8 text-center text-sm text-stone-400 dark:text-stone-500">
             暂无待处理警报
           </p>
         ) : (
@@ -39,17 +39,17 @@ export function AlertFeed({
                   className={cn(
                     "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
                     alert.severity === "danger"
-                      ? "bg-rose-50 text-rose-500"
-                      : "bg-amber-50 text-amber-500",
+                      ? "bg-rose-50 text-rose-500 dark:bg-rose-500/20 dark:text-rose-400"
+                      : "bg-amber-50 text-amber-500 dark:bg-amber-500/20 dark:text-amber-400",
                   )}
                 >
                   <AlertTriangle size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-800">
+                  <p className="truncate text-sm font-medium text-stone-800 dark:text-stone-200">
                     {alert.title}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
                     {alert.lab} · {alert.time}
                   </p>
                   {alert.hazard ? (
@@ -58,7 +58,7 @@ export function AlertFeed({
                         <button
                           type="button"
                           onClick={() => onAssign(alert.hazard!)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                         >
                           <UserPlus size={13} />
                           指派处理

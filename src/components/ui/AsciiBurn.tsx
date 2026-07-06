@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
 
 const CHARS = [" ", "·", ":", "-", "=", "+", "*", "#", "%", "@"] as const;
@@ -16,6 +16,20 @@ const HEAT_COLORS = [
   "#fffbeb",
 ] as const;
 
+// For light mode: use darker chars on light bg for contrast, subtle "flame" with stone/amber tones
+const LIGHT_HEAT_COLORS = [
+  "#f5f5f4",
+  "#e7e5e4",
+  "#d6d3d1",
+  "#a8a29e",
+  "#78716c",
+  "#57534e",
+  "#44403c",
+  "#292524",
+  "#1c1917",
+  "#0c0a09",
+] as const;
+
 type Cell = { char: string; color: string; key: string };
 
 function heatAt(
@@ -26,17 +40,20 @@ function heatAt(
   tick: number,
 ) {
   const x = col / Math.max(cols - 1, 1);
-  const center = (rows - 1) / 2;
-  const band = 1 - (Math.abs(row - center) / Math.max(center, 1)) * 0.38;
-  const ramp = Math.pow(x, 0.62);
+  const y = row / Math.max(rows - 1, 1);
+  // Heat distribution for "监控热迹": vertical emphasis from bottom (like rising heat/flame),
+  // with wave and flicker to simulate live pulsing data. Capped for subtlety.
+  const vertical = Math.pow(y, 1.8); // stronger at bottom like flame base
+  const horizontal = Math.sin(x * Math.PI * 1.5 + tick * 0.03) * 0.15 + 0.5; // gentle horizontal wave
   const flicker =
-    Math.sin(col * 0.41 + row * 0.63 + tick * 0.14) * 0.06 +
-    Math.sin(col * 0.17 - tick * 0.09 + row) * 0.04;
-  const tailBoost = x > 0.82 ? (x - 0.82) * 2.8 : 0;
-  return Math.min(1, Math.max(0, ramp * band + flicker + tailBoost));
+    Math.sin(col * 0.3 + row * 0.5 + tick * 0.2) * 0.08 +
+    Math.sin(col * 0.7 - row * 0.2 + tick * 0.15) * 0.05;
+  const intensity = vertical * 0.7 + horizontal * 0.2 + flicker;
+  return Math.min(0.65, Math.max(0.05, intensity)); // keep subtle so it doesn't affect readability
 }
 
-function buildGrid(cols: number, rows: number, tick: number) {
+function buildGrid(cols: number, rows: number, tick: number, isDark: boolean) {
+  const colors = isDark ? HEAT_COLORS : LIGHT_HEAT_COLORS;
   const grid: Cell[][] = [];
   for (let row = 0; row < rows; row += 1) {
     const line: Cell[] = [];
@@ -48,7 +65,7 @@ function buildGrid(cols: number, rows: number, tick: number) {
       );
       line.push({
         char: CHARS[index],
-        color: HEAT_COLORS[index],
+        color: colors[index],
         key: `${row}-${col}-${index}`,
       });
     }
@@ -59,11 +76,12 @@ function buildGrid(cols: number, rows: number, tick: number) {
 
 export function AsciiBurn({
   className,
-  cols = 72,
+  cols: initialCols = 72,
   rows = 5,
   label,
   bare = false,
   opacity = 1,
+  isDark = true,
 }: {
   className?: string;
   cols?: number;
@@ -73,58 +91,74 @@ export function AsciiBurn({
   bare?: boolean;
   /** Overall opacity multiplier (use low values like 0.05-0.12 for background) */
   opacity?: number;
+  isDark?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
+  const [dynamicCols, setDynamicCols] = useState(initialCols);
+
+  // Dynamically compute cols to fill the container width, so no blank on the right
+  useEffect(() => {
+    const updateCols = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.clientWidth;
+        // Approx char width for the font size used (monospace ~5-7px depending on mode)
+        const charWidth = bare ? 5.5 : 6;
+        const calculated = Math.max(20, Math.floor(width / charWidth));
+        setDynamicCols(calculated);
+      }
+    };
+
+    updateCols();
+    window.addEventListener('resize', updateCols);
+    // Also observe if container resizes (e.g. sidebar collapse)
+    const observer = new ResizeObserver(updateCols);
+    if (containerRef.current) observer.observe(containerRef.current);
+
+    return () => {
+      window.removeEventListener('resize', updateCols);
+      observer.disconnect();
+    };
+  }, [bare]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTick((value) => value + 1), 90);
     return () => window.clearInterval(timer);
   }, []);
 
-  const grid = useMemo(() => buildGrid(cols, rows, tick), [cols, rows, tick]);
+  // Use dynamic cols (measured from container) to ensure the characters fill the entire width.
+  // This eliminates the blank/empty area on the right side.
+  const effectiveCols = dynamicCols > 0 ? dynamicCols : initialCols;
+  const grid = useMemo(() => buildGrid(effectiveCols, rows, tick, isDark), [effectiveCols, rows, tick, isDark]);
 
   const preClass = bare
-    ? "m-0 font-mono select-none overflow-hidden whitespace-pre leading-[0.9] tracking-[-0.3px]"
+    ? "m-0 font-mono select-none overflow-hidden whitespace-pre leading-[0.82] tracking-[-0.8px] h-full w-full"
     : "m-0 overflow-hidden font-mono text-[9px] leading-[1.05] tracking-tight sm:text-[10px] md:text-[11px]";
 
   if (bare) {
-    // Full background flame - extremely subtle so it never hurts readability
+    // Full background flame - subtle ambient embers across entire screen.
+    // Real meaning: "实时监控热迹" (real-time monitoring heat traces).
+    // The flickering characters represent live "heat" / activity in the safety monitoring system.
+    // Intensity and flicker simulate pulsing real-time data from events, sensors, and vigilance.
+    // Brighter areas = "hotter" activity zones. Visual metaphor for the "burning" continuous safety checks.
+    // Subtle (low opacity), dynamic width fill (no blank right), does not affect readability.
     return (
       <div
+        ref={containerRef}
         className={cn("ascii-burn-bg pointer-events-none fixed inset-0 z-[-1] overflow-hidden", className)}
         style={{ opacity }}
         aria-hidden
       >
         <pre
           className={preClass}
-          style={{ fontFamily: "var(--font-mono)", fontSize: "9px", lineHeight: "0.9" }}
-        >
-          {grid.map((line, rowIndex) => (
-            <div key={`row-${rowIndex}`} className="whitespace-pre">
-              {line.map((cell) => (
-                <span key={cell.key} style={{ color: cell.color, opacity: 0.75 }}>
-                  {cell.char}
-                </span>
-              ))}
-            </div>
-          ))}
-        </pre>
-      </div>
-    );
-  }
-
-  // Original decorative bar mode
-  return (
-    <div
-      className={cn("ascii-burn relative w-full select-none", className)}
-      aria-hidden={!label}
-      role={label ? "img" : undefined}
-      aria-label={label}
-    >
-      <div className="relative overflow-hidden rounded-sm bg-stone-950 px-0.5 py-1 dark:bg-black">
-        <pre
-          className={preClass}
-          style={{ fontFamily: "var(--font-mono)" }}
+          style={{ 
+            fontFamily: "var(--font-mono)", 
+            fontSize: "6.5px", 
+            lineHeight: "0.82",
+            letterSpacing: "-0.8px",
+            height: "100%",
+            width: "100%"
+          }}
         >
           {grid.map((line, rowIndex) => (
             <div key={`row-${rowIndex}`} className="whitespace-pre">
@@ -136,11 +170,41 @@ export function AsciiBurn({
             </div>
           ))}
         </pre>
+      </div>
+    );
+  }
 
-        <span
-          className="pointer-events-none absolute top-1/2 right-0 h-3 w-3 -translate-y-1/2 translate-x-[2px] rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,251,235,0.95),0_0_28px_10px_rgba(245,158,11,0.55)] sm:h-3.5 sm:w-3.5"
-        />
-        <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-stone-950/80 via-transparent to-transparent" />
+  // Original decorative bar mode (now fills full width dynamically via dynamicCols, no blank right).
+  // Real meaning: "实时监控热迹" (real-time monitoring heat traces) - a heat map of system activity.
+  // Flickering/burning characters represent live data flow and the "temperature" of ongoing safety monitoring.
+  // Brighter = higher activity/alerts. Animation symbolizes continuous vigilance without being literal fire.
+  // Now full-width, no empty right side or artificial glow dot.
+  return (
+    <div
+      ref={containerRef}
+      className={cn("ascii-burn relative w-full select-none", className)}
+      aria-hidden={!label}
+      role={label ? "img" : undefined}
+      aria-label={label}
+    >
+      <div className={cn(
+        "relative overflow-hidden rounded-sm px-0.5 py-1",
+        isDark ? "bg-stone-950" : "bg-stone-100"
+      )}>
+        <pre
+          className={preClass}
+          style={{ fontFamily: "var(--font-mono)", width: '100%' }}
+        >
+          {grid.map((line, rowIndex) => (
+            <div key={`row-${rowIndex}`} className="whitespace-pre">
+              {line.map((cell) => (
+                <span key={cell.key} style={{ color: cell.color }}>
+                  {cell.char}
+                </span>
+              ))}
+            </div>
+          ))}
+        </pre>
       </div>
     </div>
   );

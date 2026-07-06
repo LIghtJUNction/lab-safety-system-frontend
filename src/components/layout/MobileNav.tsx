@@ -23,8 +23,8 @@ export function MobileNav({
             className={cn(
               "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium transition-all duration-300",
               isActive
-                ? "active bg-slate-900 text-white shadow-md"
-                : "bg-white text-slate-600 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700",
+                ? "active bg-stone-900 text-white shadow-md"
+                : "bg-white text-stone-600 ring-1 ring-stone-200 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700",
             )}
           >
             <Icon size={14} />

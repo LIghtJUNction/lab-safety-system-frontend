@@ -15,14 +15,14 @@ export function TrainingHighlight({
   const passRate = Math.round((stats?.exam_pass_rate ?? 0) * 100);
 
   return (
-    <section className="panel training relative overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-sm">
+    <section className="panel training relative overflow-hidden rounded-2xl border border-stone-100 bg-gradient-to-br from-stone-900 to-stone-800 p-6 text-white shadow-sm">
       <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-amber-600/10 blur-2xl" />
       <BookOpenCheck size={28} className="text-stone-400" />
-      <h2 className="mt-4 text-sm font-semibold text-slate-200">培训与考核</h2>
+      <h2 className="mt-4 text-sm font-semibold text-stone-200">培训与考核</h2>
       <strong className="mt-2 block font-mono text-4xl font-semibold tracking-tight">
         {passRate}%
       </strong>
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-stone-400">
         当前已创建 {stats?.training_count ?? 0} 个培训项目，考试结果会实时进入统计。
       </p>
       {isAdmin ? (

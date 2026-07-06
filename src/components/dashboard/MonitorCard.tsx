@@ -10,12 +10,12 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-white/90 p-5 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900/80",
+        "rounded-2xl border bg-white/90 p-5 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-stone-900/80",
         isAbnormal
           ? sensor.status === "danger"
             ? "animate-breathe-danger border-rose-200 dark:border-rose-500/40"
             : "animate-breathe-warning border-amber-200 dark:border-amber-500/40"
-          : "border-slate-100 dark:border-slate-800",
+          : "border-stone-100 dark:border-stone-800",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -33,10 +33,10 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
             <Icon size={18} strokeWidth={1.75} />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
               {sensor.label}
             </p>
-            <p className="text-[11px] text-slate-400">{sensor.detail}</p>
+            <p className="text-[11px] text-stone-400">{sensor.detail}</p>
           </div>
         </div>
         <StatusDot status={sensor.status} />
@@ -44,10 +44,10 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
 
       <div className="mt-4 flex items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-3xl font-semibold tracking-tight text-slate-900">
+          <p className="font-mono text-3xl font-semibold tracking-tight text-stone-900">
             {sensor.value}
             {sensor.unit ? (
-              <span className="ml-1 text-base font-normal text-slate-400">
+              <span className="ml-1 text-base font-normal text-stone-400">
                 {sensor.unit}
               </span>
             ) : null}

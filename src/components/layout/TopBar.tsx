@@ -16,6 +16,7 @@ export function TopBar({
   onBindPasskey,
   onToggleTheme,
   onLogout,
+  onRetry,
 }: {
   pageTitle: string;
   pageCopy: string;
@@ -29,6 +30,7 @@ export function TopBar({
   onBindPasskey: () => void;
   onToggleTheme: () => void;
   onLogout: () => void;
+  onRetry?: () => void;
 }) {
   const roleLabel =
     session.user.role === "super_admin"
@@ -41,10 +43,10 @@ export function TopBar({
     <header className="topbar space-y-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 lg:text-2xl">
+          <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 lg:text-2xl">
             {pageTitle}
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 max-w-2xl text-sm text-stone-500 dark:text-stone-400">
             {pageCopy}
           </p>
           <p
@@ -58,22 +60,31 @@ export function TopBar({
             )}
           >
             {notice}
+            {notice.includes("失败") && onRetry && (
+              <button
+                onClick={onRetry}
+                className="ml-2 text-[10px] underline hover:no-underline"
+              >
+                重试
+              </button>
+            )}
           </p>
         </div>
 
         <div className="user-menu flex flex-wrap items-center gap-2">
-          <div className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-right shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <span className="block text-sm font-medium text-slate-800 dark:text-slate-200">
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-sm transition-all dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 whitespace-nowrap">
+            <span className="font-medium text-stone-800 dark:text-stone-200">
               {session.user.display_name}
             </span>
-            <strong className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
+            <span className="text-stone-400 dark:text-stone-500">·</span>
+            <span className="text-stone-500 dark:text-stone-400">
               {roleLabel}
-            </strong>
+            </span>
           </div>
           <button
             type="button"
             onClick={onToggleTheme}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
           >
             {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
             {theme === "light" ? "暗色" : "亮色"}
@@ -81,7 +92,7 @@ export function TopBar({
           <button
             type="button"
             onClick={onBindPasskey}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
           >
             <Fingerprint size={15} />
             Passkey
@@ -100,7 +111,7 @@ export function TopBar({
       <label className="search relative block max-w-md">
         <Search
           size={17}
-          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
         />
         <input
           value={query}

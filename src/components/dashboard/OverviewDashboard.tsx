@@ -17,6 +17,7 @@ export function OverviewDashboard({
   onLock,
   onReport,
   onScan,
+  isDark = true,
 }: {
   safetyDays: number;
   onlineCount: number;
@@ -28,10 +29,12 @@ export function OverviewDashboard({
   onLock: () => void;
   onReport: () => void;
   onScan: () => void;
+  isDark?: boolean;
 }) {
   return (
     <div className="space-y-6">
-      <AsciiBurn label="实时监控热迹" cols={96} className="opacity-95" />
+      <AsciiBurn label="实时监控热迹" cols={96} className="opacity-95" isDark={isDark} />
+      {/* 含义：实时监控热迹 - 字符闪烁模拟系统活动的“热量”，代表持续的安全监控状态。 */}
       <GlobalStatusBar
         safetyDays={safetyDays}
         onlineCount={onlineCount}

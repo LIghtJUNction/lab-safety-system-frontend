@@ -28,13 +28,13 @@ export function MetricCard({
     <div className="group rounded-2xl border border-stone-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-800 dark:bg-stone-900/80">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
             {label}
           </p>
-          <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
             {value}
           </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{hint}</p>
         </div>
         <div
           className={cn(

@@ -9,9 +9,11 @@ import {
   ShieldCheck,
   Sun,
   User,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { api, AuthMethods, AuthSession, getApiBase, setApiBase, getDbUrl, setDbUrl } from "../../api";
+import { api, AuthMethods, AuthSession, getApiBase, setApiBase, getDbUrl, setDbUrl, type LoginCarouselSettings } from "../../api";
 import {
   creationOptionsFromServer,
   publicKeyCredentialToJson,
@@ -51,11 +53,44 @@ export function LoginScreen({
   // Advanced config collapsed by default
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Backend-driven carousel settings (persisted, public GET)
+  const [carouselSettings, setCarouselSettings] = useState<LoginCarouselSettings | null>(null);
+
+  // Mobile layout drawer controls
+  const [showLoginMobile, setShowLoginMobile] = useState(false);
+  const [startY, setStartY] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaY = e.changedTouches[0].clientY - startY;
+    if (deltaY < -40) {
+      setShowLoginMobile(true);
+    } else if (deltaY > 40) {
+      setShowLoginMobile(false);
+    }
+  };
+
   const isDark = theme === "dark";
 
   useEffect(() => {
     setNotice(text.notice);
   }, [text.notice]);
+
+  // Fetch custom carousel from backend (works unauthenticated)
+  useEffect(() => {
+    let mounted = true;
+    api.loginCarousel()
+      .then((settings) => {
+        if (mounted) setCarouselSettings(settings);
+      })
+      .catch(() => {
+        // fallback to built-in (already handled in carousel)
+      });
+    return () => { mounted = false; };
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -110,14 +145,16 @@ export function LoginScreen({
     }
   }
 
-  // Flame as entire subtle background.
-  // Warm ambient embers, low enough to never hurt reading, but present as requested.
+  // Full-screen subtle flame background.
+  // Real meaning (see AsciiBurn.tsx): "实时监控热迹" - flickering heat map of live system activity & safety vigilance.
+  // Dynamic fill ensures no blank/empty on the right. Very low opacity so it doesn't affect readability or UI.
   const FlameBackground = (
     <AsciiBurn
       bare
-      cols={180}
-      rows={45}
-      opacity={0.09}
+      cols={220}
+      rows={60}
+      opacity={0.07}
+      isDark={isDark}
     />
   );
 
@@ -126,12 +163,16 @@ export function LoginScreen({
     : "inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white/80 px-3 py-1.5 text-xs font-medium text-stone-700 backdrop-blur transition hover:bg-white hover:text-stone-900 active:scale-[0.985]";
 
   return (
-    <main className={`relative min-h-screen overflow-hidden ${isDark ? 'bg-[#0a0908] text-white' : 'bg-stone-100 text-stone-900'}`}>
+    <main
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className={`relative min-h-screen overflow-hidden ${isDark ? 'bg-[#0a0908] text-white' : 'bg-stone-100 text-stone-900'}`}
+    >
       {/* The flame as the entire background — subtle, warm, doesn't affect reading */}
       {isDark && FlameBackground}
 
-      {/* Light veil so everything stays highly legible */}
-      <div className={`pointer-events-none absolute inset-0 z-0 ${isDark ? 'bg-[#0a0908]/70' : 'bg-stone-100/30'}`} />
+      {/* Veil to keep text highly legible over the flame */}
+      <div className={`pointer-events-none absolute inset-0 z-0 ${isDark ? 'bg-[#0a0908]/75' : 'bg-stone-100/40'}`} />
 
       {/* Top-right functional toggles */}
       <div className="absolute right-6 top-5 z-50 flex items-center gap-2">
@@ -170,14 +211,58 @@ export function LoginScreen({
 
           {/* The carousel now renders cleanly as one elegant rotating story block */}
           <div className="max-w-[520px]">
-            <LoginCarousel language={language} isDark={isDark} />
+            <LoginCarousel
+              language={language}
+              isDark={isDark}
+              slidesOverride={carouselSettings ? carouselSettings[language] : undefined}
+            />
+          </div>
+
+          {/* Mobile Swipe/Click to Login Hint */}
+          <div className="mt-12 flex flex-col items-center justify-center lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowLoginMobile(true)}
+              className="flex flex-col items-center gap-1.5 text-xs font-semibold tracking-wider text-stone-400 dark:text-stone-500 hover:text-amber-500 transition-colors animate-bounce"
+            >
+              <ChevronUp size={20} />
+              <span>{language === "zh" ? "向上滑动或点击登录" : "Swipe up or click to login"}</span>
+            </button>
           </div>
         </div>
 
+        {/* Mobile Dim Backdrop when drawer is open */}
+        <div
+          className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
+            showLoginMobile ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setShowLoginMobile(false)}
+        />
+
         {/* RIGHT: The login form card — keep it refined */}
-        <div className="flex items-center justify-center py-8 lg:col-span-5 lg:justify-end lg:py-0">
+        <div className={`
+          flex items-center justify-center py-8 lg:col-span-5 lg:justify-end lg:py-0
+          max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-50 max-lg:w-full max-lg:max-w-none max-lg:p-0
+          max-lg:transition-transform max-lg:duration-300 max-lg:ease-out
+          ${showLoginMobile ? 'max-lg:translate-y-0' : 'max-lg:translate-y-full'}
+        `}>
           {/* White "sunken window" card with strong 3D / inset depth */}
-          <div className="w-full max-w-[360px] rounded-3xl border border-[#e5e1d8] bg-[#f9f6f0] p-8 shadow-[0_2px_4px_rgba(0,0,0,0.03),0_12px_35px_-8px_rgba(0,0,0,0.14),0_30px_80px_-15px_rgba(0,0,0,0.12),inset_0_1.5px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(0,0,0,0.07),inset_1px_0_0_rgba(255,255,255,0.6)]">
+          <div className="w-full max-w-[360px] rounded-3xl border border-[#e5e1d8] bg-[#f9f6f0] p-8 shadow-[0_2px_4px_rgba(0,0,0,0.03),0_12px_35px_-8px_rgba(0,0,0,0.14),0_30px_80px_-15px_rgba(0,0,0,0.12),inset_0_1.5px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(0,0,0,0.07),inset_1px_0_0_rgba(255,255,255,0.6)]
+            max-lg:rounded-t-[32px] max-lg:rounded-b-none max-lg:max-w-full max-lg:border-x-0 max-lg:border-b-0 max-lg:pb-12 max-lg:shadow-[0_-8px_30px_rgba(0,0,0,0.15)]
+          ">
+            {/* Close handle/indicator on mobile */}
+            <div className="flex justify-center pb-4 -mt-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setShowLoginMobile(false)}
+                className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-600 transition-colors"
+                aria-label="关闭登录面板"
+              >
+                <div className="w-12 h-1.5 rounded-full bg-stone-300 dark:bg-stone-600 mb-1" />
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
             <div className="mb-6">
               <div className="flex items-center gap-2 text-amber-500">
                 <KeyRound size={17} />
@@ -226,6 +311,7 @@ export function LoginScreen({
                       />
                     </div>
                   </div>
+
                   <div className="mt-2 flex items-center justify-between text-[10px] text-stone-400">
                     <span>留空使用默认（适合合并部署）</span>
                     <div className="flex gap-2">

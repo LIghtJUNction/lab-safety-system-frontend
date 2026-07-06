@@ -11,9 +11,9 @@ export function DataTable({
   onViewAll?: () => void;
 }) {
   return (
-    <section className="panel overflow-hidden rounded-2xl border border-slate-100 bg-white/90 shadow-sm backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
-      <div className="panel-title flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+    <section className="panel overflow-hidden rounded-2xl border border-stone-100 bg-white/90 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
+      <div className="panel-title flex items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-stone-800">
+        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
         {onViewAll ? (
           <button
             type="button"
@@ -25,9 +25,9 @@ export function DataTable({
           </button>
         ) : null}
       </div>
-      <div className="table divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="table divide-y divide-stone-100 dark:divide-stone-800">
         {rows.length === 0 ? (
-          <p className="empty px-5 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+          <p className="empty px-5 py-8 text-center text-sm text-stone-400 dark:text-stone-500">
             暂无数据，使用下方操作台创建记录。
           </p>
         ) : (
@@ -38,8 +38,8 @@ export function DataTable({
               <div
                 className={
                   actions
-                    ? "table-row with-actions grid grid-cols-[1fr_auto] items-center gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
-                    : "table-row grid grid-cols-4 gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-slate-50/80 max-lg:grid-cols-2 dark:hover:bg-slate-800/50"
+                    ? "table-row with-actions grid grid-cols-[1fr_auto] items-center gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-stone-50/80 dark:hover:bg-stone-800/50"
+                    : "table-row grid grid-cols-4 gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-stone-50/80 max-lg:grid-cols-2 dark:hover:bg-stone-800/50"
                 }
                 key={`${title}-${index}-${cells.join("-")}`}
               >
@@ -48,8 +48,8 @@ export function DataTable({
                     key={`${cellIndex}-${cell}`}
                     className={
                       cellIndex === 0
-                        ? "font-medium text-slate-800 dark:text-slate-200"
-                        : "text-slate-500 dark:text-slate-400"
+                        ? "font-medium text-stone-800 dark:text-stone-200"
+                        : "text-stone-500 dark:text-stone-400"
                     }
                   >
                     {cell}

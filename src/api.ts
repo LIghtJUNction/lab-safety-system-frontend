@@ -9,7 +9,11 @@ export function getApiBase() {
 }
 
 export function setApiBase(url: string) {
-  apiBase = url.trim();
+  let normalized = url.trim().replace(/\/$/, '');
+  if (normalized && !normalized.endsWith('/api/v1') && !normalized.match(/\/api(\/|$)/)) {
+    normalized = normalized + '/api/v1';
+  }
+  apiBase = normalized;
   if (apiBase) {
     localStorage.setItem('apiBase', apiBase);
   } else {
@@ -125,6 +129,50 @@ export type AuthMethods = {
   sso_login_url: string | null;
   oauth_login_url: string | null;
 };
+
+export type Invitation = {
+  id: number;
+  code: string;
+  lab_id: number;
+  target_role: string;
+  max_uses: number | null;
+  used_count: number;
+  memo: string | null;
+  created_by: number;
+  created_at: string;
+  expires_at: string | null;
+  status: string;
+};
+
+export type InvitationCreate = {
+  lab_id: number;
+  target_role: string;
+  max_uses: number | null;
+  memo: string | null;
+  expires_at: string | null;
+};
+
+export type InvitationRegister = {
+  code: string;
+  username: string;
+  display_name: string;
+  email: string;
+  password: string;
+};
+
+export type InvitationPublicInfo = {
+  code: string;
+  lab_name: string;
+  target_role: string;
+};
+
+export type InvitedUser = {
+  id: number;
+  username: string;
+  display_name: string;
+  email: string;
+  created_at: string;
+};
 export type ExamResult = {
   id: number;
   training_id: number;
@@ -135,7 +183,8 @@ export type ExamResult = {
 export type SafetyHazard = {
   id: number;
   title: string;
-  lab_name: string;
+  lab_id: number;
+  lab_name?: string; // for display / compatibility
   category: string;
   description: string;
   status: string;
@@ -164,14 +213,14 @@ export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & {
 };
 export type BookingCreate = Omit<Booking, "id">;
 export type RepairCreate = Omit<RepairTicket, "id">;
-export type HazardCreate = Omit<
-  SafetyHazard,
-  | "id"
-  | "status"
-  | "responsible_user_id"
-  | "remediation_photo_url"
-  | "remediation_note"
->;
+export type HazardCreate = {
+  lab_id: number;
+  title: string;
+  category: string;
+  description: string;
+  reported_by: number;
+  issue_photo_url?: string | null;
+};
 export type UserCreate = {
   username: string;
   display_name: string;
@@ -180,6 +229,64 @@ export type UserCreate = {
   auth_provider: "password" | "sso" | "oauth";
   department?: string | null;
   password?: string;
+};
+
+// New Lab model for multi-lab support
+export type Lab = {
+  id: number;
+  code: string;
+  name: string;
+  location: string | null;
+  department: string | null;
+  manager_user_id: number | null;
+  contact: string | null;
+  status: string;
+  description: string | null;
+  created_at: string;
+};
+
+export type LabCreate = {
+  code: string;
+  name: string;
+  location?: string | null;
+  department?: string | null;
+  manager_user_id?: number | null;
+  contact?: string | null;
+  status?: string;
+  description?: string | null;
+};
+
+export type LabUpdate = Partial<LabCreate>;
+
+// User's role in a specific lab
+export type LabMembership = {
+  lab_id: number;
+  lab_name: string;
+  role: "system_admin" | "lab_admin" | "lab_member" | "visitor";
+};
+
+export type LabUser = {
+  id: number;
+  lab_id: number;
+  user_id: number;
+  lab_role: "lab_admin" | "lab_member" | "visitor";
+  created_at: string;
+};
+
+export type LabUserAssign = {
+  user_id: number;
+  lab_role: "lab_admin" | "lab_member" | "visitor";
+};
+
+export type CarouselSlide = {
+  stat: string;
+  title: string;
+  body: string;
+};
+
+export type LoginCarouselSettings = {
+  zh: CarouselSlide[];
+  en: CarouselSlide[];
 };
 export type PasskeyChallenge<T> = {
   challenge_id: string;
@@ -273,10 +380,13 @@ export const api = {
   bookings: () => request<Booking[]>("/equipment-bookings"),
   repairs: () => request<RepairTicket[]>("/repair-tickets"),
   users: () => request<User[]>("/users"),
-  hazards: (q = "") =>
-    request<SafetyHazard[]>(
-      `/hazards${q ? `?q=${encodeURIComponent(q)}` : ""}`,
-    ),
+  hazards: (q = "", labId?: number) => {
+    const params = new URLSearchParams();
+    if (q) params.append("q", q);
+    if (labId) params.append("lab_id", String(labId));
+    const qs = params.toString();
+    return request<SafetyHazard[]>(`/hazards${qs ? `?${qs}` : ""}`);
+  },
   createRegulation: (payload: RegulationCreate) =>
     request<Regulation>("/regulations", {
       method: "POST",
@@ -408,4 +518,73 @@ export const api = {
       },
     );
   },
+
+  // Labs (new multi-lab master data)
+  labs: (q = "", status = "") => {
+    const params = new URLSearchParams();
+    if (q) params.append("q", q);
+    if (status) params.append("status", status);
+    const qs = params.toString();
+    return request<Lab[]>(`/labs${qs ? `?${qs}` : ""}`);
+  },
+  createLab: (payload: LabCreate) =>
+    request<Lab>("/labs", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getLab: (id: number) => request<Lab>(`/labs/${id}`),
+  updateLab: (id: number, payload: LabUpdate) =>
+    request<Lab>(`/labs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  // User's lab memberships (for role-based UI)
+  myLabMemberships: () => request<LabMembership[]>("/auth/my-labs"),
+
+  // Lab member management
+  listLabUsers: (labId: number) => request<LabUser[]>(`/labs/${labId}/users`),
+  assignLabUser: (labId: number, payload: LabUserAssign) =>
+    request<LabUser>(`/labs/${labId}/users`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  // Public: fetch custom login carousel (backend persisted, only system_admin can update)
+  loginCarousel: () => request<LoginCarouselSettings>("/settings/login-carousel"),
+  updateLoginCarousel: (payload: LoginCarouselSettings) =>
+    request<LoginCarouselSettings>("/settings/login-carousel", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  resetLoginCarousel: () =>
+    request<{ reset: boolean }>("/settings/login-carousel", {
+      method: "DELETE",
+    }),
+
+  // Invitations API
+  listInvitations: (labId?: number) => {
+    const params = new URLSearchParams();
+    if (labId) params.append("lab_id", String(labId));
+    const qs = params.toString();
+    return request<Invitation[]>(`/invitations${qs ? `?${qs}` : ""}`);
+  },
+  createInvitation: (payload: InvitationCreate) =>
+    request<Invitation>("/invitations", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  deleteInvitation: (id: number) =>
+    request<void>(`/invitations/${id}`, {
+      method: "DELETE",
+    }),
+  getInvitationUsers: (id: number) =>
+    request<InvitedUser[]>(`/invitations/${id}/users`),
+  getPublicInvitation: (code: string) =>
+    request<InvitationPublicInfo>(`/invitations/public/${code}`),
+  registerByInvitation: (payload: InvitationRegister) =>
+    request<{ status: string; username: string }>("/invitations/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };

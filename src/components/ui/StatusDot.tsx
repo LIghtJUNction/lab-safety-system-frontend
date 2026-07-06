@@ -15,7 +15,7 @@ const labelMap: Record<SensorStatus, string> = {
 
 export function StatusDot({ status }: { status: SensorStatus }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200/80">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-50 px-2.5 py-1 text-[11px] font-medium text-stone-600 ring-1 ring-stone-200/80">
       <span className="relative flex h-2 w-2">
         <span
           className={cn(
