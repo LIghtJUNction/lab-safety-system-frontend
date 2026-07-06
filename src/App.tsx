@@ -782,11 +782,14 @@ export function App() {
         throw new Error("密码至少 12 位，并包含大小写字母、数字和符号");
       }
     }
+    // Global role: lab_member for lab_admin/lab_member, visitor for visitor
+    const labRole = value(form, "lab_role");
+    const globalRole: UserCreate["role"] = labRole === "visitor" ? "visitor" : "lab_member";
     return {
       username: value(form, "username"),
       display_name: value(form, "display_name"),
       email: value(form, "email"),
-      role: value(form, "role") as UserCreate["role"],
+      role: globalRole,
       auth_provider: authProvider,
       department: optionalValue(form, "department"),
       password,
@@ -1155,7 +1158,7 @@ export function App() {
             </div>
           ) : null}
 
-          {!showInvitations ? (
+          {(showOverview || showSystemOverview) ? (
             <section className="metrics mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <MetricCard
                 label="法规条例"
@@ -1668,18 +1671,37 @@ export function App() {
             {isAdmin && showUsers ? (
               <ActionForm
                 title="创建用户"
-                onSubmit={(form) =>
-                  submitAction("创建用户", () =>
-                    api.createUser(userCreateValue(form)),
-                  )
-                }
+                onSubmit={async (form) => {
+                  const labRole = value(form, "lab_role");
+                  const labId = optionalValue(form, "lab_id");
+                  if ((labRole === "lab_admin" || labRole === "lab_member") && !labId) {
+                    throw new Error("实验室管理员和实验室成员必须选择要绑定的实验室");
+                  }
+                  const user = await api.createUser(userCreateValue(form));
+                  if (labId) {
+                    await api.assignLabUser(Number(labId), {
+                      user_id: user.id,
+                      lab_role: labRole as "lab_admin" | "lab_member" | "visitor",
+                    });
+                  }
+                  return user;
+                }}
               >
                 <FormInput name="username" placeholder="用户名" />
                 <FormInput name="display_name" placeholder="显示名" />
                 <FormInput name="email" type="email" placeholder="邮箱" />
-                <FormSelect name="role" defaultValue="researcher">
-                  <option value="researcher">普通用户</option>
-                  <option value="admin">管理员</option>
+                <FormSelect name="lab_role" defaultValue="lab_member">
+                  <option value="lab_admin">实验室管理员（绑定实验室）</option>
+                  <option value="lab_member">实验室成员（绑定实验室）</option>
+                  <option value="visitor">访客（可不绑定实验室）</option>
+                </FormSelect>
+                <FormSelect name="lab_id" defaultValue="">
+                  <option value="">不绑定实验室（仅访客推荐）</option>
+                  {labs.map((lab) => (
+                    <option key={lab.id} value={lab.id}>
+                      {lab.name} ({lab.code})
+                    </option>
+                  ))}
                 </FormSelect>
                 <FormSelect name="auth_provider" defaultValue="password">
                   <option value="password">账号密码</option>

@@ -225,7 +225,7 @@ export type UserCreate = {
   username: string;
   display_name: string;
   email: string;
-  role: "admin" | "researcher";
+  role: "lab_member" | "visitor";  // global role; lab-specific roles assigned via labs/{id}/users
   auth_provider: "password" | "sso" | "oauth";
   department?: string | null;
   password?: string;
@@ -420,7 +420,7 @@ export const api = {
           username: `user_${Date.now()}`,
           display_name: "新实验员",
           email: `user_${Date.now()}@example.com`,
-          role: "researcher",
+          role: "lab_member",
           auth_provider: "password",
           department: "公共实验平台",
           password: `Strong-${Date.now()}!Aa1`,
