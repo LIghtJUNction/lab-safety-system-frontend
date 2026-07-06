@@ -38,6 +38,20 @@ export type Booking = { id: number; equipment_id: number; user_id: number; start
 export type RepairTicket = { id: number; equipment_id: number; reported_by: number; description: string; status: string };
 export type User = { id: number; username: string; display_name: string; email: string; role: string; auth_provider: string; department: string | null; is_active: boolean };
 export type ExamResult = { id: number; training_id: number; user_id: number; score: number; status: string };
+export type SafetyHazard = {
+  id: number;
+  title: string;
+  lab_name: string;
+  category: string;
+  description: string;
+  status: string;
+  reported_by: number;
+  responsible_user_id: number | null;
+  issue_photo_url: string | null;
+  remediation_photo_url: string | null;
+  remediation_note: string | null;
+};
+export type HazardAnalytics = { by_status: CountBucket[]; by_category: CountBucket[] };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -54,6 +68,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
+  hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
   regulations: (q = "") => request<Regulation[]>(`/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   incidents: () => request<Incident[]>("/incidents"),
   trainings: () => request<Training[]>("/trainings"),
@@ -61,6 +76,7 @@ export const api = {
   bookings: () => request<Booking[]>("/equipment-bookings"),
   repairs: () => request<RepairTicket[]>("/repair-tickets"),
   users: () => request<User[]>("/users"),
+  hazards: (q = "") => request<SafetyHazard[]>(`/hazards${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   createRegulation: () =>
     request<Regulation>("/regulations", {
       method: "POST",
@@ -166,6 +182,47 @@ export const api = {
     const form = new FormData();
     form.append("file", file);
     return request<{ url: string; filename: string; size: number }>("/incidents/upload", {
+      method: "POST",
+      body: form,
+    });
+  },
+  createHazard: (reportedBy: number, issuePhotoUrl?: string) =>
+    request<SafetyHazard>("/hazards", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "消防通道堆放杂物",
+        lab_name: "材料实验室",
+        category: "消防通道",
+        description: "安全出口附近堆放纸箱，影响应急疏散。",
+        reported_by: reportedBy,
+        issue_photo_url: issuePhotoUrl,
+      }),
+    }),
+  claimHazard: (hazardId: number, responsibleUserId: number) =>
+    request<SafetyHazard>(`/hazards/${hazardId}/claim`, {
+      method: "POST",
+      body: JSON.stringify({ responsible_user_id: responsibleUserId }),
+    }),
+  submitHazardRemediation: (hazardId: number, remediationPhotoUrl: string) =>
+    request<SafetyHazard>(`/hazards/${hazardId}/remediation`, {
+      method: "POST",
+      body: JSON.stringify({
+        remediation_photo_url: remediationPhotoUrl,
+        remediation_note: "已完成整改并上传整改照片。",
+      }),
+    }),
+  uploadHazardIssuePhoto: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{ url: string; filename: string; size: number }>("/hazards/upload/issue-photo", {
+      method: "POST",
+      body: form,
+    });
+  },
+  uploadHazardRemediationPhoto: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{ url: string; filename: string; size: number }>("/hazards/upload/remediation-photo", {
       method: "POST",
       body: form,
     });

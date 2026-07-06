@@ -9,16 +9,18 @@ import {
   LayoutDashboard,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   UserCog,
   Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, Booking, DashboardStats, Equipment, IncidentAnalytics, Regulation, RepairTicket, Training, User } from "./api";
+import { api, Booking, DashboardStats, Equipment, HazardAnalytics, IncidentAnalytics, Regulation, RepairTicket, SafetyHazard, Training, User } from "./api";
 
 const nav = [
   { label: "总览", icon: LayoutDashboard },
   { label: "法规条例", icon: ClipboardList },
   { label: "事故案例", icon: AlertTriangle },
+  { label: "隐患管理", icon: ShieldCheck },
   { label: "培训考核", icon: GraduationCap },
   { label: "设备预约", icon: CalendarClock },
   { label: "报修工单", icon: Wrench },
@@ -63,35 +65,42 @@ export function App() {
   const [notice, setNotice] = useState("正在连接后端 API");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [analytics, setAnalytics] = useState<IncidentAnalytics>({ by_category: [], by_severity: [] });
+  const [hazardAnalytics, setHazardAnalytics] = useState<HazardAnalytics>({ by_status: [], by_category: [] });
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [hazards, setHazards] = useState<SafetyHazard[]>([]);
+  const [viewRole, setViewRole] = useState<"admin" | "user">("admin");
 
   async function refresh(search = query) {
     setLoading(true);
     try {
-      const [nextStats, nextAnalytics, nextRegulations, nextTrainings, nextEquipment, nextBookings, nextRepairs, nextUsers] =
+      const [nextStats, nextAnalytics, nextHazardAnalytics, nextRegulations, nextTrainings, nextEquipment, nextBookings, nextRepairs, nextUsers, nextHazards] =
         await Promise.all([
           api.dashboard(),
           api.incidentAnalytics(),
+          api.hazardAnalytics(),
           api.regulations(search),
           api.trainings(),
           api.equipment(search),
           api.bookings(),
           api.repairs(),
           api.users(),
+          api.hazards(search),
         ]);
       setStats(nextStats);
       setAnalytics(nextAnalytics);
+      setHazardAnalytics(nextHazardAnalytics);
       setRegulations(nextRegulations);
       setTrainings(nextTrainings);
       setEquipment(nextEquipment);
       setBookings(nextBookings);
       setRepairs(nextRepairs);
       setUsers(nextUsers);
+      setHazards(nextHazards);
       setNotice("已连接后端 API，数据来自 PostgreSQL");
     } catch (error) {
       setNotice(error instanceof Error ? `后端连接失败：${error.message}` : "后端连接失败");
@@ -125,6 +134,10 @@ export function App() {
     () => users.map((item) => [item.display_name, item.role, item.auth_provider, item.is_active ? "启用" : "停用"]),
     [users],
   );
+  const hazardRows = useMemo(
+    () => hazards.map((item) => [item.title, item.category, item.status, item.responsible_user_id ? `责任人 #${item.responsible_user_id}` : "待认领"]),
+    [hazards],
+  );
   const incidentBars = analytics.by_category.length
     ? analytics.by_category
     : [
@@ -157,6 +170,41 @@ export function App() {
     return { userId: user.id, trainingId: training.id };
   }
 
+  async function ensureUser() {
+    return users[0] ?? api.createUser();
+  }
+
+  async function createHazardWithOptionalPhoto(file?: File) {
+    const user = await ensureUser();
+    const upload = file ? await api.uploadHazardIssuePhoto(file) : undefined;
+    return api.createHazard(user.id, upload?.url);
+  }
+
+  async function claimFirstHazard() {
+    const user = await ensureUser();
+    const hazard = hazards.find((item) => !item.responsible_user_id) ?? (await api.createHazard(user.id));
+    return api.claimHazard(hazard.id, user.id);
+  }
+
+  async function remediateFirstHazard(file: File) {
+    const user = await ensureUser();
+    let hazard = hazards.find((item) => item.responsible_user_id === user.id) ?? hazards[0];
+    if (!hazard) {
+      hazard = await api.createHazard(user.id);
+    }
+    if (!hazard.responsible_user_id) {
+      hazard = await api.claimHazard(hazard.id, user.id);
+    }
+    const upload = await api.uploadHazardRemediationPhoto(file);
+    return api.submitHazardRemediation(hazard.id, upload.url);
+  }
+
+  const isAdmin = viewRole === "admin";
+  const pageTitle = isAdmin ? "实验室安全运营总览" : "我的实验室安全任务";
+  const pageCopy = isAdmin
+    ? "统一管理法规条例、事故案例、隐患闭环、培训考核、设备预约、报修工单和用户权限。"
+    : "提交安全隐患、认领责任、上传整改照片，并跟踪自己负责的安全任务。";
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -185,9 +233,14 @@ export function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <h1>实验室安全运营总览</h1>
-            <p>统一管理法规条例、事故案例、培训考核、设备预约、报修工单和用户权限。</p>
+            <h1>{pageTitle}</h1>
+            <p>{pageCopy}</p>
             <p className={loading ? "status loading" : "status"}>{notice}</p>
+          </div>
+          <div className="role-switch">
+            <SlidersHorizontal size={16} />
+            <button className={isAdmin ? "selected" : ""} onClick={() => setViewRole("admin")}>管理员</button>
+            <button className={!isAdmin ? "selected" : ""} onClick={() => setViewRole("user")}>普通用户</button>
           </div>
           <label className="search">
             <Search size={18} />
@@ -199,17 +252,17 @@ export function App() {
           <Metric label="法规条例" value={`${stats?.regulation_count ?? 0}`} trend="支持上传、查询和分类管理" />
           <Metric label="培训通过率" value={`${Math.round((stats?.exam_pass_rate ?? 0) * 100)}%`} trend={`${stats?.training_count ?? 0} 个培训项目`} />
           <Metric label="设备数量" value={`${stats?.equipment_count ?? 0}`} trend="支持查询、预约和报修" />
-          <Metric label="待处理工单" value={`${stats?.open_repair_count ?? 0}`} trend="按状态跟踪闭环" />
+          <Metric label={isAdmin ? "隐患闭环" : "我的隐患"} value={`${hazards.length}`} trend={isAdmin ? "问题照片、认领、整改照片" : "上报和整改任务"} />
         </section>
 
         <section className="content-grid">
           <section className="panel analysis">
             <div className="panel-title">
-              <h2>事故案例分析</h2>
+              <h2>{isAdmin ? "事故案例分析" : "我的隐患状态"}</h2>
               <button>导出</button>
             </div>
             <div className="bars">
-              {incidentBars.map((item, index) => (
+              {(isAdmin ? incidentBars : hazardAnalytics.by_status).map((item, index) => (
                 <div className="bar-line" key={item.name}>
                   <span>{item.name}</span>
                   <div>
@@ -230,14 +283,17 @@ export function App() {
           </section>
 
           <DataTable title="法规条例上传" rows={regulationRows} />
+          <DataTable title={isAdmin ? "安全隐患闭环" : "我的安全隐患"} rows={hazardRows} />
           <DataTable title="设备预约排程" rows={bookingRows} />
-          <DataTable title="报修工单" rows={repairRows} />
-          <DataTable title="用户与登录方式" rows={userRows} />
+          {isAdmin ? <DataTable title="报修工单" rows={repairRows} /> : null}
+          {isAdmin ? <DataTable title="用户与登录方式" rows={userRows} /> : null}
         </section>
 
         <section className="quick-actions">
           <button onClick={() => withAction("创建法规", api.createRegulation)}><FlaskConical size={16} />创建法规</button>
           <button onClick={() => withAction("录入事故案例", api.createIncident)}><FlaskConical size={16} />录入事故案例</button>
+          <button onClick={() => withAction("上报隐患", () => createHazardWithOptionalPhoto())}><FlaskConical size={16} />上报隐患</button>
+          <button onClick={() => withAction("责任认领", claimFirstHazard)}><FlaskConical size={16} />责任认领</button>
           <button onClick={() => withAction("登记考核通过", async () => { const ids = await ensureTrainingAndUser(); return api.createExamResult(ids.trainingId, ids.userId); })}><FlaskConical size={16} />登记考核通过</button>
           <button onClick={() => withAction("登记设备", api.createEquipment)}><FlaskConical size={16} />登记设备</button>
           <button onClick={() => withAction("创建设备预约", async () => { const ids = await ensureUserAndEquipment(); return api.createBooking(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />预约设备</button>
@@ -256,6 +312,22 @@ export function App() {
             <input type="file" onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) void withAction("上传案例附件", () => api.uploadIncident(file));
+            }} />
+          </label>
+          <label className="upload-button">
+            <ShieldCheck size={16} />
+            上传问题照片
+            <input type="file" accept="image/*" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void withAction("上传问题照片并上报隐患", () => createHazardWithOptionalPhoto(file));
+            }} />
+          </label>
+          <label className="upload-button">
+            <Wrench size={16} />
+            上传整改照片
+            <input type="file" accept="image/*" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void withAction("上传整改照片", () => remediateFirstHazard(file));
             }} />
           </label>
         </section>

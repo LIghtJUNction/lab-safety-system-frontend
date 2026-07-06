@@ -111,6 +111,32 @@ nav button:hover {
   margin-bottom: 22px;
 }
 
+.role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 4px;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+}
+
+.role-switch button {
+  min-height: 30px;
+  padding: 0 10px;
+  color: #475569;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+
+.role-switch button.selected {
+  color: #0f766e;
+  background: #ecfdf5;
+}
+
 .topbar h1 {
   margin: 0;
   color: #0f172a;
