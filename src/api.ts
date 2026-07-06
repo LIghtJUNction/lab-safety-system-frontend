@@ -37,6 +37,14 @@ export type Equipment = { id: number; asset_code: string; name: string; lab_name
 export type Booking = { id: number; equipment_id: number; user_id: number; starts_at: string; ends_at: string; purpose: string };
 export type RepairTicket = { id: number; equipment_id: number; reported_by: number; description: string; status: string };
 export type User = { id: number; username: string; display_name: string; email: string; role: string; auth_provider: string; department: string | null; is_active: boolean };
+export type AuthUser = Pick<User, "id" | "username" | "display_name" | "email" | "role" | "auth_provider">;
+export type AuthSession = {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user: AuthUser;
+};
+export type AuthMethods = { password: boolean; sso: boolean; oauth: boolean; sso_login_url: string | null; oauth_login_url: string | null };
 export type ExamResult = { id: number; training_id: number; user_id: number; score: number; status: string };
 export type SafetyHazard = {
   id: number;
@@ -66,6 +74,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  authMethods: () => request<AuthMethods>("/auth/methods"),
+  passwordLogin: (username: string, password: string) =>
+    request<AuthSession>("/auth/password-login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
   hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
@@ -132,7 +146,7 @@ export const api = {
         role: "researcher",
         auth_provider: "password",
         department: "公共实验平台",
-        password: "ChangeMe123!",
+        password: `Strong-${Date.now()}!Aa1`,
       }),
     }),
   createEquipment: () =>

@@ -6,15 +6,17 @@ import {
   ClipboardList,
   FlaskConical,
   GraduationCap,
+  KeyRound,
   LayoutDashboard,
+  LogIn,
+  LogOut,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   UserCog,
   Wrench,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { api, Booking, DashboardStats, Equipment, HazardAnalytics, IncidentAnalytics, Regulation, RepairTicket, SafetyHazard, Training, User } from "./api";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { api, AuthMethods, AuthSession, Booking, DashboardStats, Equipment, HazardAnalytics, IncidentAnalytics, Regulation, RepairTicket, SafetyHazard, Training, User } from "./api";
 
 const nav = [
   { label: "总览", icon: LayoutDashboard },
@@ -58,6 +60,100 @@ function DataTable({ title, rows }: { title: string; rows: string[][] }) {
   );
 }
 
+const SESSION_KEY = "lab-safety-session";
+
+function readSession() {
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as AuthSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function LoginScreen({
+  authMethods,
+  onLogin,
+}: {
+  authMethods: AuthMethods;
+  onLogin: (session: AuthSession) => void;
+}) {
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState("请使用账号密码登录，或选择已配置的统一身份入口。");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setNotice("正在登录");
+    try {
+      const session = await api.passwordLogin(username, password);
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      onLogin(session);
+      setNotice("登录成功");
+    } catch (error) {
+      setNotice(error instanceof Error ? `登录失败：${error.message}` : "登录失败");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="login-page">
+      <section className="login-hero">
+        <div className="brand">
+          <div className="brand-mark">
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <strong>LabSafe</strong>
+            <span>实验室安全管理</span>
+          </div>
+        </div>
+        <h1>实验室安全隐患闭环平台</h1>
+        <p>统一处理隐患上报、责任认领、整改照片、培训考核、设备预约和报修工单。</p>
+      </section>
+
+      <section className="login-panel">
+        <div className="login-title">
+          <KeyRound size={26} />
+          <div>
+            <h2>登录系统</h2>
+            <p>{notice}</p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="login-form">
+          <label>
+            用户名
+            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
+          </label>
+          <label>
+            密码
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
+          </label>
+          <button disabled={submitting || !authMethods.password}>
+            <LogIn size={17} />
+            {submitting ? "登录中" : "账号密码登录"}
+          </button>
+        </form>
+
+        <div className="federated-login">
+          <button type="button" disabled={!authMethods.sso || !authMethods.sso_login_url} onClick={() => authMethods.sso_login_url && window.location.assign(authMethods.sso_login_url)}>
+            {authMethods.sso ? "SSO 单点登录" : "SSO 未配置"}
+          </button>
+          <button type="button" disabled={!authMethods.oauth || !authMethods.oauth_login_url} onClick={() => authMethods.oauth_login_url && window.location.assign(authMethods.oauth_login_url)}>
+            {authMethods.oauth ? "OAuth 授权登录" : "OAuth 未配置"}
+          </button>
+        </div>
+
+        <p className="login-help">首次部署请使用命令行工具创建超级管理员账号。命令行用户管理只允许超级管理员执行。</p>
+      </section>
+    </main>
+  );
+}
+
 export function App() {
   const [active, setActive] = useState("总览");
   const [query, setQuery] = useState("");
@@ -73,7 +169,8 @@ export function App() {
   const [repairs, setRepairs] = useState<RepairTicket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [hazards, setHazards] = useState<SafetyHazard[]>([]);
-  const [viewRole, setViewRole] = useState<"admin" | "user">("admin");
+  const [session, setSession] = useState<AuthSession | null>(() => readSession());
+  const [authMethods, setAuthMethods] = useState<AuthMethods>({ password: true, sso: false, oauth: false, sso_login_url: null, oauth_login_url: null });
 
   async function refresh(search = query) {
     setLoading(true);
@@ -110,13 +207,18 @@ export function App() {
   }
 
   useEffect(() => {
-    void refresh("");
+    void api.authMethods().then(setAuthMethods).catch(() => undefined);
   }, []);
 
   useEffect(() => {
+    if (session) void refresh("");
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return undefined;
     const timer = window.setTimeout(() => void refresh(query), 300);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, session]);
 
   const regulationRows = useMemo(
     () => regulations.map((item) => [item.title, item.regulation_type, item.issuing_authority, item.effective_date ?? "-"]),
@@ -171,6 +273,18 @@ export function App() {
   }
 
   async function ensureUser() {
+    if (session?.user) {
+      return {
+        id: session.user.id,
+        username: session.user.username,
+        display_name: session.user.display_name,
+        email: session.user.email,
+        role: session.user.role,
+        auth_provider: session.user.auth_provider,
+        department: null,
+        is_active: true,
+      };
+    }
     return users[0] ?? api.createUser();
   }
 
@@ -199,11 +313,15 @@ export function App() {
     return api.submitHazardRemediation(hazard.id, upload.url);
   }
 
-  const isAdmin = viewRole === "admin";
+  const isAdmin = session?.user.role === "admin" || session?.user.role === "super_admin";
   const pageTitle = isAdmin ? "实验室安全运营总览" : "我的实验室安全任务";
   const pageCopy = isAdmin
     ? "统一管理法规条例、事故案例、隐患闭环、培训考核、设备预约、报修工单和用户权限。"
     : "提交安全隐患、认领责任、上传整改照片，并跟踪自己负责的安全任务。";
+
+  if (!session) {
+    return <LoginScreen authMethods={authMethods} onLogin={setSession} />;
+  }
 
   return (
     <main className="app-shell">
@@ -237,10 +355,16 @@ export function App() {
             <p>{pageCopy}</p>
             <p className={loading ? "status loading" : "status"}>{notice}</p>
           </div>
-          <div className="role-switch">
-            <SlidersHorizontal size={16} />
-            <button className={isAdmin ? "selected" : ""} onClick={() => setViewRole("admin")}>管理员</button>
-            <button className={!isAdmin ? "selected" : ""} onClick={() => setViewRole("user")}>普通用户</button>
+          <div className="user-menu">
+            <span>{session.user.display_name}</span>
+            <strong>{session.user.role === "super_admin" ? "超级管理员" : isAdmin ? "管理员" : "普通用户"}</strong>
+            <button onClick={() => {
+              window.localStorage.removeItem(SESSION_KEY);
+              setSession(null);
+            }}>
+              <LogOut size={16} />
+              退出
+            </button>
           </div>
           <label className="search">
             <Search size={18} />
