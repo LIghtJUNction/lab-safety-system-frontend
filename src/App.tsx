@@ -11,6 +11,8 @@ import {
   UserCog,
   BarChart3,
   Link2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -155,7 +157,7 @@ export function App() {
   async function saveLoginCarousel(updated: LoginCarouselSettings) {
     setCarouselSaving(true);
     try {
-      const saved = await api.updateLoginCarousel(updated);
+      const saved = await api.updateLoginCarousel(normalizeLoginCarousel(updated));
       setLoginCarousel(saved);
       setNotice("登录页轮播设置已保存（后端持久化）");
     } catch (err: any) {
@@ -192,9 +194,58 @@ export function App() {
   function syncLanguages(from: "zh" | "en", to: "zh" | "en") {
     if (!loginCarousel) return;
     const source = loginCarousel[from] || getDefaultSlides(from);
-    const next = { ...loginCarousel, [to]: [...source] };
+    const next = { ...loginCarousel, [to]: source.map(cloneSlide) };
     setLoginCarousel(next);
     setNotice(`已将 ${from === "zh" ? "中文" : "英文"} 复制到 ${to === "zh" ? "中文" : "英文"}`);
+  }
+
+  function cloneSlide(slide?: Partial<CarouselSlide>): CarouselSlide {
+    return {
+      stat: slide?.stat ?? "",
+      title: slide?.title ?? "",
+      body: slide?.body ?? "",
+    };
+  }
+
+  function normalizeSlides(lang: "zh" | "en", slides?: CarouselSlide[]): CarouselSlide[] {
+    const cleaned = (slides || [])
+      .map((slide) => ({
+        stat: slide.stat.trim(),
+        title: slide.title.trim(),
+        body: slide.body.trim(),
+      }))
+      .filter((slide) => slide.stat || slide.title || slide.body);
+    return cleaned.length ? cleaned : getDefaultSlides(lang).slice(0, 1);
+  }
+
+  function normalizeLoginCarousel(settings: LoginCarouselSettings): LoginCarouselSettings {
+    return {
+      zh: normalizeSlides("zh", settings.zh),
+      en: normalizeSlides("en", settings.en),
+    };
+  }
+
+  function updateCarouselSlide(lang: "zh" | "en", index: number, patch: Partial<CarouselSlide>) {
+    if (!loginCarousel) return;
+    const arr = (loginCarousel[lang]?.length ? loginCarousel[lang] : [cloneSlide()]).map(cloneSlide);
+    arr[index] = { ...cloneSlide(arr[index]), ...patch };
+    setLoginCarousel({ ...loginCarousel, [lang]: arr });
+  }
+
+  function addCarouselSlide(lang: "zh" | "en") {
+    if (!loginCarousel) return;
+    const arr = (loginCarousel[lang]?.length ? loginCarousel[lang] : [cloneSlide()]).map(cloneSlide);
+    setLoginCarousel({ ...loginCarousel, [lang]: [...arr, cloneSlide()] });
+  }
+
+  function removeCarouselSlide(lang: "zh" | "en", index: number) {
+    if (!loginCarousel) return;
+    const arr = (loginCarousel[lang]?.length ? loginCarousel[lang] : [cloneSlide()]).map(cloneSlide);
+    if (arr.length <= 1) {
+      updateCarouselSlide(lang, 0, cloneSlide());
+      return;
+    }
+    setLoginCarousel({ ...loginCarousel, [lang]: arr.filter((_, i) => i !== index) });
   }
 
   const [authMethods, setAuthMethods] = useState<AuthMethods>({
@@ -1287,51 +1338,56 @@ export function App() {
               {loginCarousel ? (
                 <div className="grid gap-6 md:grid-cols-2">
                   {(["zh", "en"] as const).map((lang) => {
-                    const slides = loginCarousel[lang] || [];
+                    const slides = loginCarousel[lang]?.length ? loginCarousel[lang] : [cloneSlide()];
                     return (
                       <div key={lang} className="space-y-3">
-                        <div className="text-xs font-medium uppercase tracking-widest text-stone-500">
-                          {lang === "zh" ? "中文" : "English"}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs font-medium uppercase tracking-widest text-stone-500">
+                            {lang === "zh" ? "中文" : "English"}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addCarouselSlide(lang)}
+                            disabled={carouselSaving}
+                            className="inline-flex items-center gap-1 rounded-lg border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50 dark:border-stone-600 dark:hover:bg-stone-800"
+                            title={lang === "zh" ? "新增中文轮播页" : "Add English slide"}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {lang === "zh" ? "新增" : "Add"}
+                          </button>
                         </div>
-                        {(slides.length ? slides : [{stat:"", title:"", body:""}, {stat:"", title:"", body:""}, {stat:"", title:"", body:""}]).map((slide, idx) => (
+                        {slides.map((slide, idx) => (
                           <div key={idx} className="rounded-xl border border-stone-200 p-3 text-xs dark:border-stone-700">
-                            <div className="mb-1 text-[10px] text-stone-500">Slide {idx + 1}</div>
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <div className="text-[10px] text-stone-500">Slide {idx + 1}</div>
+                              <button
+                                type="button"
+                                onClick={() => removeCarouselSlide(lang, idx)}
+                                disabled={carouselSaving}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-stone-200 text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:border-stone-700 dark:hover:bg-red-950/30"
+                                title={slides.length > 1 ? "删除此页" : "清空此页"}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                             <input
                               className="mb-1 w-full rounded border border-stone-200 bg-white px-2 py-1 dark:bg-stone-950"
                               placeholder="标签 (stat)"
                               value={slide.stat}
-                              onChange={(e) => {
-                                const next = { ...loginCarousel };
-                                const arr = [...(next[lang] || [])];
-                                arr[idx] = { ...(arr[idx] || {stat:'',title:'',body:''}), stat: e.target.value };
-                                next[lang] = arr;
-                                setLoginCarousel(next);
-                              }}
+                              onChange={(e) => updateCarouselSlide(lang, idx, { stat: e.target.value })}
                             />
                             <input
                               className="mb-1 w-full rounded border border-stone-200 bg-white px-2 py-1 font-medium dark:bg-stone-950"
                               placeholder="主标题"
                               value={slide.title}
-                              onChange={(e) => {
-                                const next = { ...loginCarousel };
-                                const arr = [...(next[lang] || [])];
-                                arr[idx] = { ...(arr[idx] || {stat:'',title:'',body:''}), title: e.target.value };
-                                next[lang] = arr;
-                                setLoginCarousel(next);
-                              }}
+                              onChange={(e) => updateCarouselSlide(lang, idx, { title: e.target.value })}
                             />
                             <textarea
                               className="w-full rounded border border-stone-200 bg-white px-2 py-1 text-xs dark:bg-stone-950"
                               rows={2}
                               placeholder="副标题 / 说明"
                               value={slide.body}
-                              onChange={(e) => {
-                                const next = { ...loginCarousel };
-                                const arr = [...(next[lang] || [])];
-                                arr[idx] = { ...(arr[idx] || {stat:'',title:'',body:''}), body: e.target.value };
-                                next[lang] = arr;
-                                setLoginCarousel(next);
-                              }}
+                              onChange={(e) => updateCarouselSlide(lang, idx, { body: e.target.value })}
                             />
                           </div>
                         ))}
