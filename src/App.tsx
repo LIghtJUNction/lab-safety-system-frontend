@@ -528,22 +528,6 @@ function LoginScreen({
               <p>{slide.body}</p>
             </article>
           ))}
-          {introSlides[language].map((slide) => (
-            <article className="intro-slide" key={`${slide.title}-copy`}>
-              <div className="brand">
-                <div className="brand-mark">
-                  <ShieldCheck size={22} />
-                </div>
-                <div>
-                  <strong>LabSafe</strong>
-                  <span>{text.brandSub}</span>
-                </div>
-              </div>
-              <span className="intro-stat">{slide.stat}</span>
-              <h1>{slide.title}</h1>
-              <p>{slide.body}</p>
-            </article>
-          ))}
         </div>
       </section>
 
