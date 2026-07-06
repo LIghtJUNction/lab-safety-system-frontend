@@ -1,4 +1,5 @@
 const API_BASE = "/api/v1";
+let accessToken: string | null = null;
 
 export type DashboardStats = {
   regulation_count: number;
@@ -62,9 +63,13 @@ export type SafetyHazard = {
 export type HazardAnalytics = { by_status: CountBucket[]; by_category: CountBucket[] };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" });
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
     ...init,
+    headers,
   });
   if (!response.ok) {
     const message = await response.text();
@@ -74,12 +79,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  setAccessToken: (token: string | null) => {
+    accessToken = token;
+  },
   authMethods: () => request<AuthMethods>("/auth/methods"),
   passwordLogin: (username: string, password: string) =>
     request<AuthSession>("/auth/password-login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
+  me: () => request<AuthUser>("/auth/me"),
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
   hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),

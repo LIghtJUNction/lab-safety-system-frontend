@@ -65,8 +65,11 @@ const SESSION_KEY = "lab-safety-session";
 function readSession() {
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as AuthSession) : null;
+    const session = raw ? (JSON.parse(raw) as AuthSession) : null;
+    api.setAccessToken(session?.access_token ?? null);
+    return session;
   } catch {
+    api.setAccessToken(null);
     return null;
   }
 }
@@ -90,6 +93,7 @@ function LoginScreen({
     try {
       const session = await api.passwordLogin(username, password);
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      api.setAccessToken(session.access_token);
       onLogin(session);
       setNotice("登录成功");
     } catch (error) {
@@ -175,6 +179,7 @@ export function App() {
   async function refresh(search = query) {
     setLoading(true);
     try {
+      const canManageUsers = session?.user.role === "admin" || session?.user.role === "super_admin";
       const [nextStats, nextAnalytics, nextHazardAnalytics, nextRegulations, nextTrainings, nextEquipment, nextBookings, nextRepairs, nextUsers, nextHazards] =
         await Promise.all([
           api.dashboard(),
@@ -185,7 +190,7 @@ export function App() {
           api.equipment(search),
           api.bookings(),
           api.repairs(),
-          api.users(),
+          canManageUsers ? api.users() : Promise.resolve([]),
           api.hazards(search),
         ]);
       setStats(nextStats);
@@ -211,8 +216,21 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (session) void refresh("");
-  }, [session]);
+    if (!session) return;
+    api.setAccessToken(session.access_token);
+    void api.me()
+      .then((user) => {
+        const nextSession = { ...session, user };
+        window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+        setSession(nextSession);
+        return refresh("");
+      })
+      .catch(() => {
+        api.setAccessToken(null);
+        window.localStorage.removeItem(SESSION_KEY);
+        setSession(null);
+      });
+  }, [session?.access_token]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -261,15 +279,19 @@ export function App() {
   }
 
   async function ensureUserAndEquipment() {
-    const user = users[0] ?? (await api.createUser());
-    const device = equipment[0] ?? (await api.createEquipment());
-    return { userId: user.id, equipmentId: device.id };
+    const device = equipment[0] ?? (isAdmin ? await api.createEquipment() : null);
+    if (!device) {
+      throw new Error("当前没有可预约或报修的设备，请联系管理员先登记设备");
+    }
+    return { userId: session!.user.id, equipmentId: device.id };
   }
 
   async function ensureTrainingAndUser() {
-    const user = users[0] ?? (await api.createUser());
-    const training = trainings[0] ?? (await api.createTraining());
-    return { userId: user.id, trainingId: training.id };
+    const training = trainings[0] ?? (isAdmin ? await api.createTraining() : null);
+    if (!training) {
+      throw new Error("当前没有可登记的培训项目，请联系管理员先创建培训");
+    }
+    return { userId: session!.user.id, trainingId: training.id };
   }
 
   async function ensureUser() {
@@ -314,6 +336,7 @@ export function App() {
   }
 
   const isAdmin = session?.user.role === "admin" || session?.user.role === "super_admin";
+  const visibleNav = isAdmin ? nav : nav.filter((item) => item.label !== "用户管理" && item.label !== "统计分析");
   const pageTitle = isAdmin ? "实验室安全运营总览" : "我的实验室安全任务";
   const pageCopy = isAdmin
     ? "统一管理法规条例、事故案例、隐患闭环、培训考核、设备预约、报修工单和用户权限。"
@@ -336,7 +359,7 @@ export function App() {
           </div>
         </div>
         <nav>
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             return (
               <button className={active === item.label ? "active" : ""} key={item.label} onClick={() => setActive(item.label)}>
@@ -359,6 +382,7 @@ export function App() {
             <span>{session.user.display_name}</span>
             <strong>{session.user.role === "super_admin" ? "超级管理员" : isAdmin ? "管理员" : "普通用户"}</strong>
             <button onClick={() => {
+              api.setAccessToken(null);
               window.localStorage.removeItem(SESSION_KEY);
               setSession(null);
             }}>
@@ -403,7 +427,14 @@ export function App() {
             <h2>培训与考核</h2>
             <strong>{Math.round((stats?.exam_pass_rate ?? 0) * 100)}%</strong>
             <p>当前已创建 {stats?.training_count ?? 0} 个培训项目，考试结果会实时进入统计。</p>
-            <button onClick={() => withAction("创建培训", api.createTraining)}>创建培训</button>
+            {isAdmin ? (
+              <button onClick={() => withAction("创建培训", api.createTraining)}>创建培训</button>
+            ) : (
+              <button onClick={() => withAction("登记考核通过", async () => {
+                const ids = await ensureTrainingAndUser();
+                return api.createExamResult(ids.trainingId, ids.userId);
+              })}>登记考核通过</button>
+            )}
           </section>
 
           <DataTable title="法规条例上传" rows={regulationRows} />
@@ -414,30 +445,30 @@ export function App() {
         </section>
 
         <section className="quick-actions">
-          <button onClick={() => withAction("创建法规", api.createRegulation)}><FlaskConical size={16} />创建法规</button>
-          <button onClick={() => withAction("录入事故案例", api.createIncident)}><FlaskConical size={16} />录入事故案例</button>
+          {isAdmin ? <button onClick={() => withAction("创建法规", api.createRegulation)}><FlaskConical size={16} />创建法规</button> : null}
+          {isAdmin ? <button onClick={() => withAction("录入事故案例", api.createIncident)}><FlaskConical size={16} />录入事故案例</button> : null}
           <button onClick={() => withAction("上报隐患", () => createHazardWithOptionalPhoto())}><FlaskConical size={16} />上报隐患</button>
           <button onClick={() => withAction("责任认领", claimFirstHazard)}><FlaskConical size={16} />责任认领</button>
           <button onClick={() => withAction("登记考核通过", async () => { const ids = await ensureTrainingAndUser(); return api.createExamResult(ids.trainingId, ids.userId); })}><FlaskConical size={16} />登记考核通过</button>
-          <button onClick={() => withAction("登记设备", api.createEquipment)}><FlaskConical size={16} />登记设备</button>
+          {isAdmin ? <button onClick={() => withAction("登记设备", api.createEquipment)}><FlaskConical size={16} />登记设备</button> : null}
           <button onClick={() => withAction("创建设备预约", async () => { const ids = await ensureUserAndEquipment(); return api.createBooking(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />预约设备</button>
           <button onClick={() => withAction("提交报修", async () => { const ids = await ensureUserAndEquipment(); return api.createRepair(ids.equipmentId, ids.userId); })}><FlaskConical size={16} />提交报修</button>
-          <label className="upload-button">
+          {isAdmin ? <label className="upload-button">
             <ClipboardList size={16} />
             上传法规文件
             <input type="file" onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) void withAction("上传法规文件", () => api.uploadRegulation(file));
             }} />
-          </label>
-          <label className="upload-button">
+          </label> : null}
+          {isAdmin ? <label className="upload-button">
             <AlertTriangle size={16} />
             上传案例附件
             <input type="file" onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) void withAction("上传案例附件", () => api.uploadIncident(file));
             }} />
-          </label>
+          </label> : null}
           <label className="upload-button">
             <ShieldCheck size={16} />
             上传问题照片
