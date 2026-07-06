@@ -125,6 +125,23 @@ nav button:hover {
   line-height: 1.7;
 }
 
+.topbar .status {
+  display: inline-flex;
+  margin-top: 10px;
+  padding: 4px 10px;
+  color: #0f766e;
+  background: #ecfdf5;
+  border: 1px solid #ccfbf1;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.topbar .status.loading {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
 .search {
   display: flex;
   align-items: center;
@@ -272,6 +289,15 @@ nav button:hover {
   gap: 8px;
 }
 
+.empty {
+  margin: 0;
+  padding: 14px 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 .table-row {
   display: grid;
   grid-template-columns: 1.35fr 0.75fr 1fr 0.7fr;
@@ -297,13 +323,26 @@ nav button:hover {
   margin-top: 14px;
 }
 
-.quick-actions button {
+.quick-actions button,
+.upload-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: #172033;
   background: #ffffff;
   border-color: #e3e8ef;
+}
+
+.upload-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.upload-button input {
+  display: none;
 }
 
 @media (max-width: 980px) {
