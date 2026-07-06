@@ -1,4 +1,35 @@
-const API_BASE = "/api/v1";
+// Support runtime configuration for separated deployment (frontend and backend on different origins/ports)
+// These can be set from the login page UI and persist in localStorage
+let apiBase = localStorage.getItem('apiBase') || import.meta.env.VITE_API_BASE_URL || '/api/v1';
+let dbUrl = localStorage.getItem('dbUrl') || import.meta.env.VITE_DB_URL || '';
+
+export function getApiBase() {
+  const base = apiBase || '/api/v1';
+  return base.replace(/\/$/, ''); // clean trailing slash
+}
+
+export function setApiBase(url: string) {
+  apiBase = url.trim();
+  if (apiBase) {
+    localStorage.setItem('apiBase', apiBase);
+  } else {
+    localStorage.removeItem('apiBase');
+  }
+}
+
+export function getDbUrl() {
+  return dbUrl;
+}
+
+export function setDbUrl(url: string) {
+  dbUrl = url.trim();
+  if (dbUrl) {
+    localStorage.setItem('dbUrl', dbUrl);
+  } else {
+    localStorage.removeItem('dbUrl');
+  }
+}
+
 let accessToken: string | null = null;
 
 export type DashboardStats = {
@@ -29,6 +60,7 @@ export type Incident = {
   category: string;
   root_cause: string;
   corrective_actions: string;
+  file_url: string | null;
 };
 
 export type CountBucket = { name: string; count: number };
@@ -117,6 +149,10 @@ export type HazardAnalytics = {
   by_status: CountBucket[];
   by_category: CountBucket[];
 };
+export type RegulationAnalytics = {
+  by_type: CountBucket[];
+  by_authority: CountBucket[];
+};
 export type RegulationCreate = Omit<Regulation, "id" | "created_at">;
 export type IncidentCreate = Omit<Incident, "id">;
 export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & {
@@ -165,7 +201,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${getApiBase()}${path}`, {
     ...init,
     headers,
   });
@@ -225,6 +261,7 @@ export const api = {
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
   hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
+  regulationAnalytics: () => request<RegulationAnalytics>("/analytics/regulations"),
   regulations: (q = "") =>
     request<Regulation[]>(
       `/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`,
