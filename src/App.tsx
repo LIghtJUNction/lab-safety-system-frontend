@@ -340,6 +340,27 @@ function credentialToJson(value: unknown): unknown {
         .buffer,
     );
   }
+  if (
+    typeof AuthenticatorAttestationResponse !== "undefined" &&
+    value instanceof AuthenticatorAttestationResponse
+  ) {
+    return {
+      clientDataJSON: bufferToBase64Url(value.clientDataJSON),
+      attestationObject: bufferToBase64Url(value.attestationObject),
+      transports: value.getTransports?.() ?? [],
+    };
+  }
+  if (
+    typeof AuthenticatorAssertionResponse !== "undefined" &&
+    value instanceof AuthenticatorAssertionResponse
+  ) {
+    return {
+      clientDataJSON: bufferToBase64Url(value.clientDataJSON),
+      authenticatorData: bufferToBase64Url(value.authenticatorData),
+      signature: bufferToBase64Url(value.signature),
+      userHandle: value.userHandle ? bufferToBase64Url(value.userHandle) : null,
+    };
+  }
   if (Array.isArray(value)) return value.map(credentialToJson);
   if (value && typeof value === "object") {
     return Object.fromEntries(
@@ -359,12 +380,28 @@ function publicKeyCredentialToJson(credential: Credential) {
     rawId: publicKey.rawId,
     type: publicKey.type,
     response: publicKey.response,
+    clientExtensionResults: publicKey.getClientExtensionResults(),
   });
 }
 
+type PublicKeyEnvelope<T> = T | { publicKey: T };
+
+function unwrapPublicKeyOptions<T>(options: PublicKeyEnvelope<T>): T {
+  if (
+    options &&
+    typeof options === "object" &&
+    "publicKey" in options &&
+    options.publicKey
+  ) {
+    return options.publicKey as T;
+  }
+  return options as T;
+}
+
 function creationOptionsFromServer(
-  options: PublicKeyCredentialCreationOptions,
+  serverOptions: PublicKeyEnvelope<PublicKeyCredentialCreationOptions>,
 ): PublicKeyCredentialCreationOptions {
+  const options = unwrapPublicKeyOptions(serverOptions);
   return {
     ...options,
     challenge: base64UrlToBuffer(options.challenge as unknown as string),
@@ -380,8 +417,9 @@ function creationOptionsFromServer(
 }
 
 function requestOptionsFromServer(
-  options: PublicKeyCredentialRequestOptions,
+  serverOptions: PublicKeyEnvelope<PublicKeyCredentialRequestOptions>,
 ): PublicKeyCredentialRequestOptions {
+  const options = unwrapPublicKeyOptions(serverOptions);
   return {
     ...options,
     challenge: base64UrlToBuffer(options.challenge as unknown as string),

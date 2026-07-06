@@ -4,7 +4,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const baseUrl = process.env.E2E_BASE_URL ?? "http://127.0.0.1:5174";
+const baseUrl = process.env.E2E_BASE_URL ?? "http://localhost:5174";
 const adminUser = process.env.E2E_ADMIN_USER ?? "cli_super";
 const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? "StrongerAdmin123!";
 const federatedSecret =
@@ -83,6 +83,21 @@ async function login(page, username, password) {
   await waitForNotice(page, "已连接后端 API");
 }
 
+async function enableVirtualPasskey(context, page) {
+  const client = await context.newCDPSession(page);
+  await client.send("WebAuthn.enable");
+  await client.send("WebAuthn.addVirtualAuthenticator", {
+    options: {
+      protocol: "ctap2",
+      transport: "usb",
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
+}
+
 async function uploadByLabel(page, label, filePath) {
   const input = page.locator(".upload-button", { hasText: label }).locator("input");
   await expect(input).toHaveCount(1);
@@ -97,6 +112,8 @@ const context = await browser.newContext({
 const page = await context.newPage();
 
 try {
+  await enableVirtualPasskey(context, page);
+
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await expect(page.locator(".login-page")).toBeVisible();
   await expect(page.getByLabel("用户名")).toBeVisible();
@@ -137,6 +154,15 @@ try {
   }
 
   await login(page, adminUser, adminPassword);
+  await expect(page.getByRole("button", { name: "用户管理" })).toBeVisible();
+
+  await page.getByRole("button", { name: /Passkey/ }).click();
+  await waitForNotice(page, "绑定 Passkey成功");
+  await page.getByRole("button", { name: /退出/ }).click();
+  await expect(page.locator(".login-page")).toBeVisible();
+  await page.getByLabel("用户名").fill(adminUser);
+  await page.getByRole("button", { name: /使用 Passkey/ }).click();
+  await expect(page.locator(".app-shell")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "用户管理" })).toBeVisible();
 
   const researcherUsername = `e2e_researcher_${suffix}`;
