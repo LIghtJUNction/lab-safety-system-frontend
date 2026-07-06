@@ -182,7 +182,7 @@ const loginCopy = {
     help: "首次部署请使用命令行工具创建超级管理员账号。命令行用户管理只允许超级管理员执行。",
     source: "源代码仓库",
     license:
-      "开源许可：GPL-3.0-only。按现状提供，不附带任何担保；部署者需自行负责数据安全、账号策略和合规要求。",
+      "开源许可：AGPL-3.0-only。按现状提供，不附带任何担保；部署者需自行负责数据安全、账号策略和合规要求。",
     title: "登录系统",
     brandSub: "实验室安全管理",
   },
@@ -204,7 +204,7 @@ const loginCopy = {
     help: "Create the first super administrator with the CLI. CLI user management is restricted to super administrators.",
     source: "Source repository",
     license:
-      "License: GPL-3.0-only. Provided as-is, without warranty. Operators are responsible for data security, account policy, and compliance.",
+      "License: AGPL-3.0-only. Provided as-is, without warranty. Operators are responsible for data security, account policy, and compliance.",
     title: "Sign in",
     brandSub: "Laboratory Safety",
   },
