@@ -610,6 +610,18 @@ export function App() {
       ]),
     [users],
   );
+
+  const labRows = useMemo(
+    () =>
+      labs.map((lab) => [
+        lab.name,
+        lab.code,
+        lab.location || "-",
+        lab.department || "-",
+        lab.status,
+      ]),
+    [labs],
+  );
   const hazardRows = useMemo(
     () =>
       hazards.map((item) => ({
@@ -1115,6 +1127,44 @@ export function App() {
             }}
           />
 
+          {showLabManagement && isSystemAdmin && (
+            <div className="mb-4 p-4 border border-stone-200 rounded-xl bg-white/50 dark:bg-stone-900/30">
+              <h4 className="font-medium mb-2">新建实验室</h4>
+              <ActionForm
+                title=""
+                onSubmit={(form) =>
+                  submitAction("创建实验室", async () => {
+                    const newLab = await api.createLab({
+                      code: value(form, "code"),
+                      name: value(form, "name"),
+                      location: optionalValue(form, "location"),
+                      department: optionalValue(form, "department"),
+                      contact: optionalValue(form, "contact"),
+                      status: value(form, "status"),
+                      description: optionalValue(form, "description"),
+                    });
+                    setLabs((prev) => [...prev, newLab]);
+                    return newLab;
+                  })
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <FormInput name="code" placeholder="代码 LAB-XXX" />
+                  <FormInput name="name" placeholder="名称" />
+                  <FormInput name="location" placeholder="地点" />
+                  <FormInput name="department" placeholder="院系" />
+                  <FormInput name="contact" placeholder="联系" />
+                  <FormSelect name="status" defaultValue="active">
+                    <option value="active">active</option>
+                    <option value="inactive">inactive</option>
+                    <option value="maintenance">maintenance</option>
+                  </FormSelect>
+                </div>
+                <FormInput name="description" placeholder="描述" />
+              </ActionForm>
+            </div>
+          )}
+
           {showOverview ? (
             <div className="mt-8">
               <OverviewDashboard
@@ -1294,6 +1344,14 @@ export function App() {
               />
             ) : null}
           </section>
+
+          {/* Lab management for system admin */}
+          {showLabManagement && isSystemAdmin && (
+            <section className="mt-6 rounded-2xl border border-stone-200 bg-white/80 p-5 dark:border-stone-700 dark:bg-stone-900/60">
+              <h3 className="text-base font-semibold mb-4">实验室列表</h3>
+              <DataTable title="实验室列表" rows={labRows} />
+            </section>
+          )}
 
           {/* Global login carousel editor - only for system_admin via 全局配置 tab */}
           {showSystemConfig && isSystemAdmin && (
@@ -1697,11 +1755,15 @@ export function App() {
                 </FormSelect>
                 <FormSelect name="lab_id" defaultValue="">
                   <option value="">不绑定实验室（仅访客推荐）</option>
-                  {labs.map((lab) => (
-                    <option key={lab.id} value={lab.id}>
-                      {lab.name} ({lab.code})
-                    </option>
-                  ))}
+                  {labs.length > 0 ? (
+                    labs.map((lab) => (
+                      <option key={lab.id} value={lab.id}>
+                        {lab.name} ({lab.code})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>（请先创建实验室）</option>
+                  )}
                 </FormSelect>
                 <FormSelect name="auth_provider" defaultValue="password">
                   <option value="password">账号密码</option>
