@@ -73,7 +73,7 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
   // New multi-lab support states
   const [labs, setLabs] = useState<Lab[]>([]);
   const [selectedLabId, setSelectedLabId] = useState<number | null>(null);
-  const [labMemberships, setLabMemberships] = useState<LabMembership[]>([]);
+  const [labMemberships, setLabMemberships] = useState<LabMembership[] | null>(null);
   const [labMembers, setLabMembers] = useState<LabUser[]>([]);
   const [editingLab, setEditingLab] = useState<Lab | null>(null);
   const [viewingLabMembers, setViewingLabMembers] = useState<{ labId: number; name: string } | null>(null);
@@ -123,7 +123,7 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
   const isSystemAdmin = session?.user.role === "system_admin";
 
   const currentLabRole = (() => {
-    if (!selectedLabId || !session) return null;
+    if (!selectedLabId || !session || !labMemberships) return null;
     if (isSystemAdmin) return "system_admin" as const;
     const m = labMemberships.find((m) => m.lab_id === selectedLabId);
     return m ? m.role : null;
@@ -257,7 +257,7 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
   }, [selectedLabId]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !labMemberships) return;
     const user = session.user;
     const { isSystemRoute, isLabRoute, urlLabId } = parsedRoute;
 
