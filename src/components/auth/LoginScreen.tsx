@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { api, AuthMethods, AuthSession, getApiBase, setApiBase, getDbUrl, setDbUrl, type LoginCarouselSettings } from "../../api";
+import { api, AuthMethods, AuthSession, getApiBase, setApiBase, type LoginCarouselSettings } from "../../api";
 import {
   creationOptionsFromServer,
   publicKeyCredentialToJson,
@@ -48,7 +48,6 @@ export function LoginScreen({
 
   // Runtime config support for separated deployment (frontend served separately from backend)
   const [apiBaseInput, setApiBaseInput] = useState(getApiBase());
-  const [dbUrlInput, setDbUrlInput] = useState(getDbUrl());
 
   // Advanced config collapsed by default
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -146,7 +145,7 @@ export function LoginScreen({
   }
 
   // Full-screen subtle flame background.
-  // Real meaning (see AsciiBurn.tsx): "实时监控热迹" - flickering heat map of live system activity & safety vigilance.
+  // Visual meaning (see AsciiBurn.tsx): decorative safety posture heat pattern, not sensor data.
   // Dynamic fill ensures no blank/empty on the right. Very low opacity so it doesn't affect readability or UI.
   const FlameBackground = (
     <AsciiBurn
@@ -180,7 +179,7 @@ export function LoginScreen({
           type="button"
           onClick={() => setTheme(isDark ? "light" : "dark")}
           className={toggleClass}
-          aria-label="切换主题"
+          aria-label={text.themeToggle}
         >
           {isDark ? <Sun size={15} /> : <Moon size={15} />}
           <span className="hidden sm:inline">{isDark ? "Light" : "Dark"}</span>
@@ -189,7 +188,7 @@ export function LoginScreen({
           type="button"
           onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
           className={toggleClass}
-          aria-label="切换语言"
+          aria-label={text.languageToggle}
         >
           <Languages size={15} />
           <span className="hidden sm:inline">{language === "zh" ? "EN" : "中文"}</span>
@@ -205,7 +204,7 @@ export function LoginScreen({
               <ShieldCheck size={18} />
             </div>
             <div className={`text-sm font-medium tracking-tight ${isDark ? 'text-white/80' : 'text-stone-700'}`}>
-              LabSafe <span className={isDark ? 'text-white/40' : 'text-stone-500'}>· 实验室安全管理</span>
+              LabSafe <span className={isDark ? 'text-white/40' : 'text-stone-500'}>· {text.brandSub}</span>
             </div>
           </div>
 
@@ -226,7 +225,7 @@ export function LoginScreen({
               className="flex flex-col items-center gap-1.5 text-xs font-semibold tracking-wider text-stone-400 dark:text-stone-500 hover:text-amber-500 transition-colors animate-bounce"
             >
               <ChevronUp size={20} />
-              <span>{language === "zh" ? "向上滑动或点击登录" : "Swipe up or click to login"}</span>
+              <span>{text.mobileLoginCta}</span>
             </button>
           </div>
         </div>
@@ -256,7 +255,7 @@ export function LoginScreen({
                 type="button"
                 onClick={() => setShowLoginMobile(false)}
                 className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-600 transition-colors"
-                aria-label="关闭登录面板"
+                aria-label={text.closeLoginPanel}
               >
                 <div className="w-12 h-1.5 rounded-full bg-stone-300 dark:bg-stone-600 mb-1" />
                 <ChevronDown size={16} />
@@ -279,60 +278,46 @@ export function LoginScreen({
                 onClick={() => setShowAdvanced(!showAdvanced)}
                 className="flex w-full items-center justify-between text-xs text-stone-500 hover:text-stone-700"
               >
-                <span>高级配置（前后端分离部署时使用）</span>
-                <span>{showAdvanced ? '收起 ▲' : '展开 ▼'}</span>
+                <span>{text.advancedConfig}</span>
+                <span>{showAdvanced ? `${text.collapse} ▲` : `${text.expand} ▼`}</span>
               </button>
 
               {showAdvanced && (
                 <div className="mt-2 rounded-2xl border border-stone-200 bg-stone-50 p-3 text-xs">
                   <div className="space-y-2">
                     <div>
-                      <label className="block text-[10px] text-stone-500 mb-0.5">后端地址（默认 /api/v1）</label>
+                      <label className="block text-[10px] text-stone-500 mb-0.5">{text.backendAddress}</label>
                       <input
                         value={apiBaseInput}
                         onChange={(e) => {
                           setApiBaseInput(e.target.value);
                           setApiBase(e.target.value);
                         }}
-                        placeholder="/api/v1 或 http://backend:8080/api/v1"
-                        className="w-full rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-amber-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-stone-500 mb-0.5">数据库地址（后端使用，可选）</label>
-                      <input
-                        value={dbUrlInput}
-                        onChange={(e) => {
-                          setDbUrlInput(e.target.value);
-                          setDbUrl(e.target.value);
-                        }}
-                        placeholder="postgresql://user:pass@db:5432/lab_safety"
+                        placeholder={text.backendAddressPlaceholder}
                         className="w-full rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
 
                   <div className="mt-2 flex items-center justify-between text-[10px] text-stone-400">
-                    <span>留空使用默认（适合合并部署）</span>
+<span>{text.backendAddressHint}</span>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => {
                           setApiBaseInput('/api/v1');
                           setApiBase('/api/v1');
-                          setDbUrlInput('');
-                          setDbUrl('');
                         }}
                         className="text-amber-600 hover:underline"
                       >
-                        重置默认
+                        {text.resetDefault}
                       </button>
                       <button
                         type="button"
                         onClick={() => window.location.reload()}
                         className="text-amber-600 hover:underline"
                       >
-                        应用并刷新
+                        {text.applyAndReload}
                       </button>
                     </div>
                   </div>
@@ -395,7 +380,7 @@ export function LoginScreen({
 
             <div className="my-4 flex items-center gap-3">
               <div className="h-px flex-1 bg-stone-200" />
-              <span className="text-[10px] uppercase tracking-widest text-stone-400">其他入口</span>
+              <span className="text-[10px] uppercase tracking-widest text-stone-400">{text.otherEntries}</span>
               <div className="h-px flex-1 bg-stone-200" />
             </div>
 

@@ -1,16 +1,20 @@
 import { ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { nav } from "../../lib/constants";
 import { cn } from "../../lib/cn";
+import { navDisplayLabel } from "../../lib/navigation";
+import type { Language } from "../../lib/types";
 
 export function Sidebar({
   active,
   visibleNav,
+  language,
   onNavigate,
   collapsed = false,
   onToggleCollapse,
 }: {
   active: string;
   visibleNav: typeof nav;
+  language: Language;
   onNavigate: (label: string) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -29,14 +33,20 @@ export function Sidebar({
         {!collapsed && (
           <div>
             <strong className="block text-sm font-semibold tracking-wide">LabSafe</strong>
-            <span className="text-[11px] text-stone-400">实验室安全管理</span>
+            <span className="text-[11px] text-stone-400">
+              {language === "en" ? "Laboratory Safety" : "实验室安全管理"}
+            </span>
           </div>
         )}
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
             className="ml-auto p-1 text-stone-400 hover:text-white"
-            aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
+            aria-label={
+              collapsed
+                ? language === "en" ? "Expand sidebar" : "展开侧边栏"
+                : language === "en" ? "Collapse sidebar" : "收起侧边栏"
+            }
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
@@ -47,6 +57,7 @@ export function Sidebar({
         {visibleNav.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.label;
+          const displayLabel = navDisplayLabel(item.label, language);
           return (
             <button
               type="button"
@@ -58,10 +69,10 @@ export function Sidebar({
               )}
               key={item.label}
               onClick={() => onNavigate(item.label)}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? displayLabel : undefined}
             >
               <Icon size={17} strokeWidth={isActive ? 2 : 1.75} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{displayLabel}</span>}
             </button>
           );
         })}
@@ -73,7 +84,9 @@ export function Sidebar({
             <p className="text-[10px] uppercase tracking-widest text-stone-500">
               Safety OS
             </p>
-            <p className="mt-1 font-mono text-xs text-stone-400">v0.1.0 · 实时监控</p>
+          <p className="mt-1 font-mono text-xs text-stone-400">
+            v0.1.0 · {language === "en" ? "Safety management" : "安全管理"}
+          </p>
           </>
         )}
       </div>

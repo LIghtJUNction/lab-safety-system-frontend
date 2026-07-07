@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, Invitation, InvitedUser, Lab } from "../../api";
+import { copyTextToClipboard } from "../../lib/clipboard";
+import { invitationCopy } from "../../lib/constants";
 import { Language } from "../../lib/types";
 
 export function InvitationsManager({
@@ -25,6 +27,7 @@ export function InvitationsManager({
   labs: Lab[];
   language: Language;
 }) {
+  const copy = invitationCopy[language];
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export function InvitationsManager({
       const data = await api.listInvitations(labId || undefined);
       setInvitations(data);
     } catch (err: any) {
-      setError(err?.message || "加载邀请链接失败");
+      setError(err?.message || copy.loadError);
     } finally {
       setLoading(false);
     }
@@ -91,14 +94,14 @@ export function InvitationsManager({
       setMaxUses("");
       loadInvitations();
     } catch (err: any) {
-      setError(err?.message || "创建邀请链接失败");
+      setError(err?.message || copy.createError);
     } finally {
       setCreating(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!window.confirm("确定要撤销并删除该邀请链接吗？已注册的用户不会受到影响，但该链接将无法再被使用。")) {
+    if (!window.confirm(copy.deleteConfirm)) {
       return;
     }
     try {
@@ -108,29 +111,34 @@ export function InvitationsManager({
         setViewingInviteUsers(null);
       }
     } catch (err: any) {
-      setError(err?.message || "删除邀请链接失败");
+      setError(err?.message || copy.deleteError);
     }
   }
 
   async function handleViewUsers(invite: Invitation) {
     setViewingInviteUsers(invite);
     setLoadingUsers(true);
+    setError(null);
     try {
       const list = await api.getInvitationUsers(invite.id);
       setInvitedUsersList(list);
     } catch (err: any) {
-      alert("加载已注册成员失败: " + (err?.message || String(err)));
+      setInvitedUsersList([]);
+      setError(`${copy.loadUsersError}: ${err?.message || String(err)}`);
     } finally {
       setLoadingUsers(false);
     }
   }
 
-  function handleCopyLink(code: string) {
+  async function handleCopyLink(code: string) {
     const link = `${window.location.origin}/join/${code}`;
-    navigator.clipboard.writeText(link).then(() => {
+    try {
+      await copyTextToClipboard(link);
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
-    });
+    } catch {
+      setError(copy.copyFailed.replace("{link}", link));
+    }
   }
 
   return (
@@ -146,13 +154,13 @@ export function InvitationsManager({
       <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800/80 dark:bg-stone-900/60 backdrop-blur">
         <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900 dark:text-white mb-6">
           <PlusCircle className="text-amber-500" size={20} />
-          <span>创建新邀请链接</span>
+          <span>{copy.createTitle}</span>
         </h3>
 
         <form onSubmit={handleCreate} className="grid grid-cols-1 gap-6 md:grid-cols-4 items-end">
           {isSystemAdmin && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-stone-500">目标实验室</label>
+              <label className="text-xs font-semibold text-stone-500">{copy.targetLab}</label>
               <select
                 required
                 value={selectedLabId}
@@ -169,25 +177,25 @@ export function InvitationsManager({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-stone-500">成员角色</label>
+            <label className="text-xs font-semibold text-stone-500">{copy.memberRole}</label>
             <select
               required
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value)}
               className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-sm dark:border-stone-800 dark:bg-stone-950 outline-none focus:border-amber-500"
             >
-              <option value="lab_member">普通成员 (lab_member)</option>
-              <option value="visitor">只读访客 (visitor)</option>
-              <option value="lab_admin">实验室管理员 (lab_admin)</option>
+              <option value="lab_member">{copy.roleMember} (lab_member)</option>
+              <option value="visitor">{copy.roleVisitor} (visitor)</option>
+              <option value="lab_admin">{copy.roleAdmin} (lab_admin)</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-stone-500">注册人数限制 (空表示无限制)</label>
+            <label className="text-xs font-semibold text-stone-500">{copy.maxUses}</label>
             <input
               type="number"
               min="1"
-              placeholder="例如 10"
+              placeholder={copy.maxUsesPlaceholder}
               value={maxUses}
               onChange={(e) => setMaxUses(e.target.value)}
               className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-sm dark:border-stone-800 dark:bg-stone-950 outline-none focus:border-amber-500"
@@ -195,24 +203,24 @@ export function InvitationsManager({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-stone-500">有效期期限</label>
+            <label className="text-xs font-semibold text-stone-500">{copy.expiry}</label>
             <select
               value={expiresDays}
               onChange={(e) => setExpiresDays(e.target.value)}
               className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-sm dark:border-stone-800 dark:bg-stone-950 outline-none focus:border-amber-500"
             >
-              <option value="1">1 天 (1 Day)</option>
-              <option value="7">7 天 (7 Days)</option>
-              <option value="30">30 天 (30 Days)</option>
-              <option value="">永久有效 (Never Expires)</option>
+              <option value="1">{copy.day1}</option>
+              <option value="7">{copy.day7}</option>
+              <option value="30">{copy.day30}</option>
+              <option value="">{copy.neverExpires}</option>
             </select>
           </div>
 
           <div className="md:col-span-3 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-stone-500">备注信息 (Memo / 用途描述)</label>
+            <label className="text-xs font-semibold text-stone-500">{copy.memo}</label>
             <input
               type="text"
-              placeholder="说明此邀请链接的发放范围，例如：2026届化学研究生入队邀请"
+              placeholder={copy.memoPlaceholder}
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-sm dark:border-stone-800 dark:bg-stone-950 outline-none focus:border-amber-500"
@@ -225,7 +233,7 @@ export function InvitationsManager({
               disabled={creating || !selectedLabId}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-900 transition hover:bg-amber-600 active:scale-[0.985] disabled:opacity-60"
             >
-              {creating ? "正在生成..." : "生成邀请链接"}
+              {creating ? copy.creating : copy.createButton}
             </button>
           </div>
         </form>
@@ -237,10 +245,10 @@ export function InvitationsManager({
           <div className="px-6 py-5 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center">
             <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900 dark:text-white">
               <Link2 className="text-amber-500" size={18} />
-              <span>当前邀请链接列表</span>
+              <span>{copy.listTitle}</span>
             </h3>
             <span className="text-xs text-stone-500 bg-stone-100 dark:bg-stone-800 px-2.5 py-1 rounded-full">
-              共 {invitations.length} 条记录
+              {copy.recordCount.replace("{count}", String(invitations.length))}
             </span>
           </div>
 
@@ -251,24 +259,24 @@ export function InvitationsManager({
           ) : invitations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Link2 size={36} className="text-stone-300 dark:text-stone-700 mb-3" />
-              <p className="text-sm text-stone-500 font-medium">暂无活跃的邀请链接</p>
-              <p className="text-xs text-stone-400 mt-1">请使用上方表单创建第一个邀请链接</p>
+              <p className="text-sm text-stone-500 font-medium">{copy.emptyTitle}</p>
+              <p className="text-xs text-stone-400 mt-1">{copy.emptyHint}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-stone-100 dark:border-stone-800 text-[11px] font-semibold text-stone-400 uppercase tracking-wider bg-stone-50/50 dark:bg-stone-950/20">
-                    <th className="px-6 py-3.5">链接/提取码</th>
-                    <th className="px-4 py-3.5">角色</th>
-                    <th className="px-4 py-3.5">使用限制/已用</th>
-                    <th className="px-4 py-3.5">过期时间</th>
-                    <th className="px-6 py-3.5 text-right">操作</th>
+                    <th className="px-6 py-3.5">{copy.codeColumn}</th>
+                    <th className="px-4 py-3.5">{copy.roleColumn}</th>
+                    <th className="px-4 py-3.5">{copy.usageColumn}</th>
+                    <th className="px-4 py-3.5">{copy.expiryColumn}</th>
+                    <th className="px-6 py-3.5 text-right">{copy.actionsColumn}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 dark:divide-stone-800 text-sm">
                   {invitations.map((invite) => {
-                    const labName = labs.find((l) => l.id === invite.lab_id)?.name || `实验室 #${invite.lab_id}`;
+                    const labName = labs.find((l) => l.id === invite.lab_id)?.name || copy.labFallback.replace("{id}", String(invite.lab_id));
                     const isCopied = copiedCode === invite.code;
                     const isExpired = invite.expires_at ? new Date(invite.expires_at) < new Date() : false;
                     const isLimitReached = invite.max_uses ? invite.used_count >= invite.max_uses : false;
@@ -289,7 +297,7 @@ export function InvitationsManager({
                               type="button"
                               onClick={() => handleCopyLink(invite.code)}
                               className="text-stone-400 hover:text-amber-500 transition-colors p-1"
-                              title="复制邀请注册完整链接"
+                              title={copy.copyTitle}
                             >
                               {isCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                             </button>
@@ -327,7 +335,7 @@ export function InvitationsManager({
                             </span>
                             {isLimitReached && (
                               <span className="text-[10px] bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded-full font-semibold">
-                                满员
+                                {copy.full}
                               </span>
                             )}
                           </div>
@@ -341,7 +349,7 @@ export function InvitationsManager({
                               </span>
                             </div>
                           ) : (
-                            <span className="text-stone-400">永久有效</span>
+                            <span className="text-stone-400">{copy.neverExpires}</span>
                           )}
                         </td>
                         <td className="px-6 py-4.5 text-right space-x-1.5">
@@ -349,16 +357,16 @@ export function InvitationsManager({
                             type="button"
                             onClick={() => handleViewUsers(invite)}
                             className="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
-                            title="查看已注册的特定用户"
+                            title={copy.viewUsersTitle}
                           >
                             <Users size={13} />
-                            <span>查看人员 ({invite.used_count})</span>
+                            <span>{copy.viewUsers} ({invite.used_count})</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(invite.id)}
                             className="inline-flex items-center justify-center p-2 rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50 dark:border-rose-950/30 dark:text-rose-400 dark:hover:bg-rose-950/20"
-                            title="撤销并删除该链接"
+                            title={copy.deleteTitle}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -379,23 +387,23 @@ export function InvitationsManager({
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-bold text-stone-900 dark:text-white">
-                    已注册成员详情
+                    {copy.detailTitle}
                   </h4>
                   <p className="text-xs font-mono text-stone-400 mt-1">
-                    代码: {viewingInviteUsers.code.slice(0, 16)}...
+                    {copy.codePrefix}: {viewingInviteUsers.code.slice(0, 16)}...
                   </p>
                 </div>
                 <button
                   onClick={() => setViewingInviteUsers(null)}
                   className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 text-xs font-semibold"
                 >
-                  关闭
+                  {copy.close}
                 </button>
               </div>
 
               {viewingInviteUsers.memo && (
                 <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-xs text-amber-600 dark:text-amber-400">
-                  <span className="font-semibold block mb-0.5">链接备注：</span>
+                  <span className="font-semibold block mb-0.5">{copy.memoLabel}</span>
                   {viewingInviteUsers.memo}
                 </div>
               )}
@@ -403,7 +411,7 @@ export function InvitationsManager({
               <div className="space-y-3">
                 <h5 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
                   <UserPlus size={13} />
-                  <span>已绑定注册名单 ({invitedUsersList.length} 人)</span>
+                  <span>{copy.boundUsers.replace("{count}", String(invitedUsersList.length))}</span>
                 </h5>
 
                 {loadingUsers ? (
@@ -412,7 +420,7 @@ export function InvitationsManager({
                   </div>
                 ) : invitedUsersList.length === 0 ? (
                   <p className="text-xs text-stone-400 text-center py-8">
-                    暂无用户通过该邀请链接注册
+                    {copy.noUsers}
                   </p>
                 ) : (
                   <div className="divide-y divide-stone-100 dark:divide-stone-800 max-h-[350px] overflow-y-auto pr-1">
@@ -427,7 +435,7 @@ export function InvitationsManager({
                           </span>
                         </div>
                         <div className="text-xs text-stone-500">
-                          用户名: @{user.username}
+                          {copy.username}: @{user.username}
                         </div>
                         <div className="text-xs text-stone-400 flex justify-between items-center mt-1">
                           <span>{user.email}</span>
@@ -445,9 +453,9 @@ export function InvitationsManager({
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center h-full">
               <Users size={32} className="text-stone-300 dark:text-stone-700 mb-3" />
-              <p className="text-sm font-semibold text-stone-500">查看注册明细</p>
+              <p className="text-sm font-semibold text-stone-500">{copy.detailsEmptyTitle}</p>
               <p className="text-xs text-stone-400 mt-1 max-w-[200px]">
-                点击左侧列表中的“查看人员”按钮，即可在此处查看谁通过该特定的邀请码完成了注册与绑定。
+                {copy.detailsEmptyHint}
               </p>
             </div>
           )}

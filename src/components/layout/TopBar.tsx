@@ -1,7 +1,7 @@
 import { Fingerprint, LogOut, Moon, Search, Sun } from "lucide-react";
 import { AuthSession } from "../../api";
 import { cn } from "../../lib/cn";
-import { ThemeMode } from "../../lib/types";
+import { Language, ThemeMode } from "../../lib/types";
 
 export function TopBar({
   pageTitle,
@@ -10,6 +10,7 @@ export function TopBar({
   loading,
   session,
   isAdmin,
+  language,
   query,
   theme,
   onQueryChange,
@@ -24,6 +25,7 @@ export function TopBar({
   loading: boolean;
   session: AuthSession;
   isAdmin: boolean;
+  language: Language;
   query: string;
   theme: ThemeMode;
   onQueryChange: (value: string) => void;
@@ -34,10 +36,11 @@ export function TopBar({
 }) {
   const roleLabel =
     session.user.role === "super_admin"
-      ? "超级管理员"
+      ? language === "en" ? "Super admin" : "超级管理员"
       : isAdmin
-        ? "管理员"
-        : "普通用户";
+        ? language === "en" ? "Admin" : "管理员"
+        : language === "en" ? "User" : "普通用户";
+  const failed = notice.includes("失败") || notice.toLowerCase().includes("failed");
 
   return (
     <header className="topbar space-y-5">
@@ -54,18 +57,18 @@ export function TopBar({
               "status mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
               loading
                 ? "loading bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30"
-                : notice.includes("失败")
+                : failed
                   ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/30"
                   : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30",
             )}
           >
             {notice}
-            {notice.includes("失败") && onRetry && (
+            {failed && onRetry && (
               <button
                 onClick={onRetry}
                 className="ml-2 text-[10px] underline hover:no-underline"
               >
-                重试
+                {language === "en" ? "Retry" : "重试"}
               </button>
             )}
           </p>
@@ -87,7 +90,9 @@ export function TopBar({
             className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
           >
             {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
-            {theme === "light" ? "暗色" : "亮色"}
+            {theme === "light"
+              ? language === "en" ? "Dark" : "暗色"
+              : language === "en" ? "Light" : "亮色"}
           </button>
           <button
             type="button"
@@ -103,7 +108,7 @@ export function TopBar({
             className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-stone-800 hover:shadow-md dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
           >
             <LogOut size={15} />
-            退出
+            {language === "en" ? "Sign out" : "退出"}
           </button>
         </div>
       </div>
@@ -116,7 +121,7 @@ export function TopBar({
         <input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="搜索法规、案例、设备"
+          placeholder={language === "en" ? "Search regulations, cases, equipment" : "搜索法规、案例、设备"}
           className="w-full rounded-xl border border-stone-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-stone-800 shadow-sm outline-none backdrop-blur-md transition-all duration-200 placeholder:text-stone-400 focus:border-stone-400 focus:ring-2 focus:ring-stone-200 dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-100 dark:focus:border-stone-500 dark:focus:ring-stone-700/40"
         />
       </label>

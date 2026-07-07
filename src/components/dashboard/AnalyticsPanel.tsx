@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 import { CountBucket } from "../../api";
+import type { Language } from "../../lib/types";
 
 const palette = ["#44403c", "#78716c", "#a8a29e", "#b45309"];
 
@@ -7,11 +8,14 @@ export function AnalyticsPanel({
   title,
   items,
   onExport,
+  language,
 }: {
   title: string;
   items: CountBucket[];
   onExport: () => void;
+  language: Language;
 }) {
+  const isEn = language === "en";
   const max = Math.max(...items.map((i) => i.count), 1);
 
   return (
@@ -24,7 +28,7 @@ export function AnalyticsPanel({
           className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition-all duration-300 hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-md dark:border-stone-700 dark:text-stone-400 dark:hover:border-stone-600"
         >
           <Download size={14} />
-          导出
+          {isEn ? "Export" : "导出"}
         </button>
       </div>
       <div className="bars mt-5 space-y-3">

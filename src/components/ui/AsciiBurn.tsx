@@ -42,7 +42,6 @@ function heatAt(
   const x = col / Math.max(cols - 1, 1);
   const y = row / Math.max(rows - 1, 1);
   // Heat distribution for "监控热迹": vertical emphasis from bottom (like rising heat/flame),
-  // with wave and flicker to simulate live pulsing data. Capped for subtlety.
   const vertical = Math.pow(y, 1.8); // stronger at bottom like flame base
   const horizontal = Math.sin(x * Math.PI * 1.5 + tick * 0.03) * 0.15 + 0.5; // gentle horizontal wave
   const flicker =
@@ -137,10 +136,7 @@ export function AsciiBurn({
 
   if (bare) {
     // Full background flame - subtle ambient embers across entire screen.
-    // Real meaning: "实时监控热迹" (real-time monitoring heat traces).
-    // The flickering characters represent live "heat" / activity in the safety monitoring system.
-    // Intensity and flicker simulate pulsing real-time data from events, sensors, and vigilance.
-    // Brighter areas = "hotter" activity zones. Visual metaphor for the "burning" continuous safety checks.
+    // Visual meaning: decorative safety posture heat pattern, not sensor or event data.
     // Subtle (low opacity), dynamic width fill (no blank right), does not affect readability.
     return (
       <div
@@ -175,9 +171,7 @@ export function AsciiBurn({
   }
 
   // Original decorative bar mode (now fills full width dynamically via dynamicCols, no blank right).
-  // Real meaning: "实时监控热迹" (real-time monitoring heat traces) - a heat map of system activity.
   // Flickering/burning characters represent live data flow and the "temperature" of ongoing safety monitoring.
-  // Brighter = higher activity/alerts. Animation symbolizes continuous vigilance without being literal fire.
   // Now full-width, no empty right side or artificial glow dot.
   return (
     <div

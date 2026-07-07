@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, UserPlus } from "lucide-react";
 import { SafetyHazard } from "../../api";
 import { cn } from "../../lib/cn";
+import type { Language } from "../../lib/types";
 
 export type AlertItem = {
   id: number;
@@ -15,21 +16,26 @@ export function AlertFeed({
   alerts,
   onAssign,
   onConfirm,
+  language,
 }: {
   alerts: AlertItem[];
   onAssign: (hazard: SafetyHazard) => void;
   onConfirm: (hazard: SafetyHazard) => void;
+  language: Language;
 }) {
+  const isEn = language === "en";
   return (
     <section className="rounded-2xl border border-stone-100 bg-white/90 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
       <div className="border-b border-stone-100 px-5 py-4 dark:border-stone-800">
-        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">实时警报</h2>
-        <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">最新安全隐患流水</p>
+        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{isEn ? "Hazard alerts" : "隐患警报"}</h2>
+        <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+          {isEn ? "From backend hazard and repair records" : "来自后端隐患和报修记录"}
+        </p>
       </div>
       <div className="divide-y divide-stone-100 dark:divide-stone-800">
         {alerts.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-stone-400 dark:text-stone-500">
-            暂无待处理警报
+            {isEn ? "No pending alerts" : "暂无待处理警报"}
           </p>
         ) : (
           alerts.map((alert) => (
@@ -61,7 +67,7 @@ export function AlertFeed({
                           className="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                         >
                           <UserPlus size={13} />
-                          指派处理
+                          {isEn ? "Assign" : "指派处理"}
                         </button>
                       ) : null}
                       <button
@@ -70,7 +76,7 @@ export function AlertFeed({
                         className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-md dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-stone-600"
                       >
                         <CheckCircle2 size={13} />
-                        确认安全
+                        {isEn ? "Confirm safe" : "确认安全"}
                       </button>
                     </div>
                   ) : null}

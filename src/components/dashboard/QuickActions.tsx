@@ -1,42 +1,59 @@
-import { Lock, QrCode, Siren } from "lucide-react";
+import { CalendarClock, GraduationCap, Siren, type LucideIcon } from "lucide-react";
+import type { Language } from "../../lib/types";
+
+type QuickAction = {
+  label: string;
+  desc: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  style: string;
+};
 
 export function QuickActions({
-  onLock,
   onReport,
-  onScan,
+  onEquipment,
+  onTraining,
+  language,
 }: {
-  onLock: () => void;
   onReport: () => void;
-  onScan: () => void;
+  onEquipment: () => void;
+  onTraining: () => void;
+  language: Language;
 }) {
-  const actions = [
+  const isEn = language === "en";
+  const actions: QuickAction[] = [
     {
-      label: "一键锁定实验室",
-      desc: "紧急封锁所有出入口",
-      icon: Lock,
-      onClick: onLock,
-      style: "bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700",
-    },
-    {
-      label: "一键上报异常",
-      desc: "快速创建隐患工单",
+      label: isEn ? "Report hazard" : "上报隐患",
+      desc: isEn ? "Open the hazard reporting workflow" : "进入隐患上报流程",
       icon: Siren,
       onClick: onReport,
       style: "bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500",
     },
     {
-      label: "耗材扫码入库",
-      desc: "扫描条码登记库存",
-      icon: QrCode,
-      onClick: onScan,
-      style: "border border-stone-200 bg-white text-stone-800 hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600",
+      label: isEn ? "Book equipment" : "预约设备",
+      desc: isEn ? "Open equipment booking and repair actions" : "进入设备预约与报修",
+      icon: CalendarClock,
+      onClick: onEquipment,
+      style: "bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700",
+    },
+    {
+      label: isEn ? "Training exam" : "培训考核",
+      desc: isEn ? "Open training and assessment actions" : "进入培训与考核登记",
+      icon: GraduationCap,
+      onClick: onTraining,
+      style:
+        "border border-stone-200 bg-white text-stone-800 hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600",
     },
   ];
 
   return (
     <section className="rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
-      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">快捷操作</h2>
-      <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">紧急响应与日常登记</p>
+      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+        {isEn ? "Quick actions" : "快捷操作"}
+      </h2>
+      <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+        {isEn ? "Emergency response and daily entry" : "紧急响应与日常登记"}
+      </p>
       <div className="mt-4 space-y-3">
         {actions.map((action) => {
           const Icon = action.icon;

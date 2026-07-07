@@ -1,303 +1,117 @@
-// Support runtime configuration for separated deployment (frontend and backend on different origins/ports)
-// These can be set from the login page UI and persist in localStorage
-let apiBase = localStorage.getItem('apiBase') || import.meta.env.VITE_API_BASE_URL || '/api/v1';
-let dbUrl = localStorage.getItem('dbUrl') || import.meta.env.VITE_DB_URL || '';
+import type {
+  DashboardStats,
+  Regulation,
+  Incident,
+  CountBucket,
+  IncidentAnalytics,
+  Training,
+  Equipment,
+  Booking,
+  RepairTicket,
+  User,
+  AuthUser,
+  AuthSession,
+  AuthMethods,
+  Invitation,
+  InvitationCreate,
+  InvitationRegister,
+  InvitationPublicInfo,
+  InvitedUser,
+  ExamResult,
+  SafetyHazard,
+  HazardAnalytics,
+  RegulationAnalytics,
+  RegulationCreate,
+  IncidentCreate,
+  TrainingCreate,
+  EquipmentCreate,
+  BookingCreate,
+  RepairCreate,
+  HazardCreate,
+  UserCreate,
+  Lab,
+  LabCreate,
+  LabUpdate,
+  LabMembership,
+  LabUser,
+  LabUserAssign,
+  CarouselSlide,
+  LoginCarouselSettings,
+  PasskeyChallenge,
+  PasskeySummary,
+} from "./api-types";
+export type {
+  DashboardStats,
+  Regulation,
+  Incident,
+  CountBucket,
+  IncidentAnalytics,
+  Training,
+  Equipment,
+  Booking,
+  RepairTicket,
+  User,
+  AuthUser,
+  AuthSession,
+  AuthMethods,
+  Invitation,
+  InvitationCreate,
+  InvitationRegister,
+  InvitationPublicInfo,
+  InvitedUser,
+  ExamResult,
+  SafetyHazard,
+  HazardAnalytics,
+  RegulationAnalytics,
+  RegulationCreate,
+  IncidentCreate,
+  TrainingCreate,
+  EquipmentCreate,
+  BookingCreate,
+  RepairCreate,
+  HazardCreate,
+  UserCreate,
+  Lab,
+  LabCreate,
+  LabUpdate,
+  LabMembership,
+  LabUser,
+  LabUserAssign,
+  CarouselSlide,
+  LoginCarouselSettings,
+  PasskeyChallenge,
+  PasskeySummary,
+} from "./api-types";
+// Support runtime configuration for separated deployment (frontend and backend on different origins/ports).
+// Database connectivity is configured by the backend process, not by the browser client.
+let apiBase =
+  localStorage.getItem("apiBase") ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "/api/v1";
 
 export function getApiBase() {
-  const base = apiBase || '/api/v1';
-  return base.replace(/\/$/, ''); // clean trailing slash
+  const base = apiBase || "/api/v1";
+  return base.replace(/\/$/, ""); // clean trailing slash
 }
 
 export function setApiBase(url: string) {
-  let normalized = url.trim().replace(/\/$/, '');
-  if (normalized && !normalized.endsWith('/api/v1') && !normalized.match(/\/api(\/|$)/)) {
-    normalized = normalized + '/api/v1';
+  let normalized = url.trim().replace(/\/$/, "");
+  if (
+    normalized &&
+    !normalized.endsWith("/api/v1") &&
+    !normalized.match(/\/api(\/|$)/)
+  ) {
+    normalized = normalized + "/api/v1";
   }
   apiBase = normalized;
   if (apiBase) {
-    localStorage.setItem('apiBase', apiBase);
+    localStorage.setItem("apiBase", apiBase);
   } else {
-    localStorage.removeItem('apiBase');
-  }
-}
-
-export function getDbUrl() {
-  return dbUrl;
-}
-
-export function setDbUrl(url: string) {
-  dbUrl = url.trim();
-  if (dbUrl) {
-    localStorage.setItem('dbUrl', dbUrl);
-  } else {
-    localStorage.removeItem('dbUrl');
+    localStorage.removeItem("apiBase");
   }
 }
 
 let accessToken: string | null = null;
-
-export type DashboardStats = {
-  regulation_count: number;
-  incident_count: number;
-  training_count: number;
-  equipment_count: number;
-  open_repair_count: number;
-  exam_pass_rate: number;
-};
-
-export type Regulation = {
-  id: number;
-  title: string;
-  regulation_type: string;
-  issuing_authority: string;
-  effective_date: string | null;
-  summary: string;
-  file_url: string | null;
-};
-
-export type Incident = {
-  id: number;
-  title: string;
-  lab_name: string;
-  occurred_on: string;
-  severity: string;
-  category: string;
-  root_cause: string;
-  corrective_actions: string;
-  file_url: string | null;
-};
-
-export type CountBucket = { name: string; count: number };
-export type IncidentAnalytics = {
-  by_category: CountBucket[];
-  by_severity: CountBucket[];
-};
-export type Training = {
-  id: number;
-  title: string;
-  target_role: string;
-  status: string;
-  exam_required_score: number;
-};
-export type Equipment = {
-  id: number;
-  asset_code: string;
-  name: string;
-  lab_name: string;
-  status: string;
-  owner: string | null;
-};
-export type Booking = {
-  id: number;
-  equipment_id: number;
-  user_id: number;
-  starts_at: string;
-  ends_at: string;
-  purpose: string;
-};
-export type RepairTicket = {
-  id: number;
-  equipment_id: number;
-  reported_by: number;
-  description: string;
-  status: string;
-};
-export type User = {
-  id: number;
-  username: string;
-  display_name: string;
-  email: string;
-  role: string;
-  auth_provider: string;
-  department: string | null;
-  is_active: boolean;
-};
-export type AuthUser = Pick<
-  User,
-  "id" | "username" | "display_name" | "email" | "role" | "auth_provider"
->;
-export type AuthSession = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  user: AuthUser;
-};
-export type AuthMethods = {
-  password: boolean;
-  sso: boolean;
-  oauth: boolean;
-  sso_login_url: string | null;
-  oauth_login_url: string | null;
-};
-
-export type Invitation = {
-  id: number;
-  code: string;
-  lab_id: number;
-  target_role: string;
-  max_uses: number | null;
-  used_count: number;
-  memo: string | null;
-  created_by: number;
-  created_at: string;
-  expires_at: string | null;
-  status: string;
-};
-
-export type InvitationCreate = {
-  lab_id: number;
-  target_role: string;
-  max_uses: number | null;
-  memo: string | null;
-  expires_at: string | null;
-};
-
-export type InvitationRegister = {
-  code: string;
-  username: string;
-  display_name: string;
-  email: string;
-  password: string;
-};
-
-export type InvitationPublicInfo = {
-  code: string;
-  lab_name: string;
-  target_role: string;
-};
-
-export type InvitedUser = {
-  id: number;
-  username: string;
-  display_name: string;
-  email: string;
-  created_at: string;
-};
-export type ExamResult = {
-  id: number;
-  training_id: number;
-  user_id: number;
-  score: number;
-  status: string;
-};
-export type SafetyHazard = {
-  id: number;
-  title: string;
-  lab_id: number;
-  lab_name?: string; // for display / compatibility
-  category: string;
-  description: string;
-  status: string;
-  reported_by: number;
-  responsible_user_id: number | null;
-  issue_photo_url: string | null;
-  remediation_photo_url: string | null;
-  remediation_note: string | null;
-};
-export type HazardAnalytics = {
-  by_status: CountBucket[];
-  by_category: CountBucket[];
-};
-export type RegulationAnalytics = {
-  by_type: CountBucket[];
-  by_authority: CountBucket[];
-};
-export type RegulationCreate = Omit<Regulation, "id" | "created_at">;
-export type IncidentCreate = Omit<Incident, "id">;
-export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & {
-  exam_required_score?: number;
-  starts_on?: string | null;
-};
-export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & {
-  owner?: string | null;
-};
-export type BookingCreate = Omit<Booking, "id">;
-export type RepairCreate = Omit<RepairTicket, "id">;
-export type HazardCreate = {
-  lab_id: number;
-  title: string;
-  category: string;
-  description: string;
-  reported_by: number;
-  issue_photo_url?: string | null;
-};
-export type UserCreate = {
-  username: string;
-  display_name: string;
-  email: string;
-  role: "lab_member" | "visitor";  // global role; lab-specific roles assigned via labs/{id}/users
-  auth_provider: "password" | "sso" | "oauth";
-  department?: string | null;
-  password?: string;
-};
-
-// New Lab model for multi-lab support
-export type Lab = {
-  id: number;
-  code: string;
-  name: string;
-  location: string | null;
-  department: string | null;
-  manager_user_id: number | null;
-  contact: string | null;
-  status: string;
-  description: string | null;
-  created_at: string;
-};
-
-export type LabCreate = {
-  code: string;
-  name: string;
-  location?: string | null;
-  department?: string | null;
-  manager_user_id?: number | null;
-  contact?: string | null;
-  status?: string;
-  description?: string | null;
-};
-
-export type LabUpdate = Partial<LabCreate>;
-
-// User's role in a specific lab
-export type LabMembership = {
-  lab_id: number;
-  lab_name: string;
-  role: "system_admin" | "lab_admin" | "lab_member" | "visitor";
-};
-
-export type LabUser = {
-  id: number;
-  lab_id: number;
-  user_id: number;
-  lab_role: "lab_admin" | "lab_member" | "visitor";
-  created_at: string;
-};
-
-export type LabUserAssign = {
-  user_id: number;
-  lab_role: "lab_admin" | "lab_member" | "visitor";
-};
-
-export type CarouselSlide = {
-  stat: string;
-  title: string;
-  body: string;
-};
-
-export type LoginCarouselSettings = {
-  zh: CarouselSlide[];
-  en: CarouselSlide[];
-};
-export type PasskeyChallenge<T> = {
-  challenge_id: string;
-  options: T;
-};
-export type PasskeySummary = {
-  id: number;
-  name: string;
-  created_at: string;
-  last_used_at: string | null;
-};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(
@@ -315,6 +129,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || `Request failed: ${response.status}`);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return response.json() as Promise<T>;
 }
@@ -368,12 +185,14 @@ export const api = {
   dashboard: () => request<DashboardStats>("/analytics/dashboard"),
   incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
   hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
-  regulationAnalytics: () => request<RegulationAnalytics>("/analytics/regulations"),
+  regulationAnalytics: () =>
+    request<RegulationAnalytics>("/analytics/regulations"),
   regulations: (q = "") =>
     request<Regulation[]>(
       `/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`,
     ),
-  incidents: () => request<Incident[]>("/incidents"),
+  incidents: (q = "") =>
+    request<Incident[]>(`/incidents${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   trainings: () => request<Training[]>("/trainings"),
   equipment: (q = "") =>
     request<Equipment[]>(`/equipment${q ? `?q=${encodeURIComponent(q)}` : ""}`),
@@ -402,30 +221,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  createExamResult: (trainingId: number, userId: number, score = 92) =>
+  createExamResult: (trainingId: number, userId: number, score: number) =>
     request<ExamResult>("/exam-results", {
       method: "POST",
       body: JSON.stringify({
         training_id: trainingId,
         user_id: userId,
         score,
-        status: score >= 60 ? "passed" : "failed",
       }),
     }),
-  createUser: (payload?: UserCreate) =>
+  createUser: (payload: UserCreate) =>
     request<User>("/users", {
       method: "POST",
-      body: JSON.stringify(
-        payload ?? {
-          username: `user_${Date.now()}`,
-          display_name: "新实验员",
-          email: `user_${Date.now()}@example.com`,
-          role: "lab_member",
-          auth_provider: "password",
-          department: "公共实验平台",
-          password: `Strong-${Date.now()}!Aa1`,
-        },
-      ),
+      body: JSON.stringify(payload),
     }),
   createEquipment: (payload: EquipmentCreate) =>
     request<Equipment>("/equipment", {
@@ -477,7 +285,7 @@ export const api = {
   submitHazardRemediation: (
     hazardId: number,
     remediationPhotoUrl: string,
-    remediationNote = "已完成整改并上传整改照片。",
+    remediationNote: string,
   ) =>
     request<SafetyHazard>(`/hazards/${hazardId}/remediation`, {
       method: "POST",
@@ -549,9 +357,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  removeLabUser: (labId: number, userId: number) =>
+    request<void>(`/labs/${labId}/users/${userId}`, {
+      method: "DELETE",
+    }),
 
   // Public: fetch custom login carousel (backend persisted, only system_admin can update)
-  loginCarousel: () => request<LoginCarouselSettings>("/settings/login-carousel"),
+  loginCarousel: () =>
+    request<LoginCarouselSettings>("/settings/login-carousel"),
   updateLoginCarousel: (payload: LoginCarouselSettings) =>
     request<LoginCarouselSettings>("/settings/login-carousel", {
       method: "PATCH",

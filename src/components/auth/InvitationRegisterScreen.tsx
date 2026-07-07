@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { api, InvitationPublicInfo } from "../../api";
+import { loginCopy } from "../../lib/constants";
 import { Language, ThemeMode } from "../../lib/types";
 
 export function InvitationRegisterScreen({
@@ -28,6 +29,7 @@ export function InvitationRegisterScreen({
   setTheme: (theme: ThemeMode) => void;
   onBackToLogin: () => void;
 }) {
+  const text = loginCopy[language];
   const isDark = theme === "dark";
   const [loading, setLoading] = useState(true);
   const [inviteInfo, setInviteInfo] = useState<InvitationPublicInfo | null>(null);
@@ -54,7 +56,13 @@ export function InvitationRegisterScreen({
       })
       .catch((err) => {
         if (mounted) {
-          setError(err instanceof Error ? err.message : "邀请链接已失效或不存在");
+          setError(
+            err instanceof Error
+              ? err.message
+              : language === "zh"
+                ? "邀请链接已失效或不存在"
+                : "Invitation link is invalid or expired",
+          );
           setLoading(false);
         }
       });
@@ -87,6 +95,13 @@ export function InvitationRegisterScreen({
     }
   }
 
+  function roleLabel(role?: string) {
+    if (language !== "zh") return role ?? "member";
+    if (role === "lab_admin") return "管理员";
+    if (role === "lab_member") return "普通成员";
+    return "只读访客";
+  }
+
   const toggleClass = isDark
     ? "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur transition hover:bg-black/60 hover:text-white active:scale-[0.985]"
     : "inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white/80 px-3 py-1.5 text-xs font-medium text-stone-700 backdrop-blur transition hover:bg-white hover:text-stone-900 active:scale-[0.985]";
@@ -106,7 +121,7 @@ export function InvitationRegisterScreen({
           type="button"
           onClick={() => setTheme(isDark ? "light" : "dark")}
           className={toggleClass}
-          aria-label="切换主题"
+          aria-label={text.themeToggle}
         >
           {isDark ? <Sun size={15} /> : <Moon size={15} />}
           <span className="hidden sm:inline">{isDark ? "Light" : "Dark"}</span>
@@ -115,7 +130,7 @@ export function InvitationRegisterScreen({
           type="button"
           onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
           className={toggleClass}
-          aria-label="切换语言"
+          aria-label={text.languageToggle}
         >
           <Languages size={15} />
           <span className="hidden sm:inline">{language === "zh" ? "EN" : "中文"}</span>
@@ -129,7 +144,7 @@ export function InvitationRegisterScreen({
             <ShieldCheck size={18} />
           </div>
           <div className="text-sm font-semibold tracking-tight">
-            LabSafe <span className={isDark ? "text-white/40" : "text-stone-500"}>· 实验室安全管理</span>
+            LabSafe <span className={isDark ? "text-white/40" : "text-stone-500"}>· {text.brandSub}</span>
           </div>
         </div>
 
@@ -194,8 +209,8 @@ export function InvitationRegisterScreen({
               </h2>
               <p className="text-xs text-stone-500 mb-6 text-center">
                 {language === "zh"
-                  ? `您被邀请加入「${inviteInfo?.lab_name}」担任「${inviteInfo?.target_role === "lab_admin" ? "管理员" : inviteInfo?.target_role === "lab_member" ? "普通成员" : "只读访客"}」`
-                  : `Invited to join "${inviteInfo?.lab_name}" as "${inviteInfo?.target_role}"`}
+                  ? `您被邀请加入「${inviteInfo?.lab_name}」担任「${roleLabel(inviteInfo?.target_role)}」`
+                  : `Invited to join "${inviteInfo?.lab_name}" as "${roleLabel(inviteInfo?.target_role)}"`}
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">

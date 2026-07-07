@@ -1,13 +1,17 @@
 import { nav } from "../../lib/constants";
 import { cn } from "../../lib/cn";
+import { navDisplayLabel } from "../../lib/navigation";
+import type { Language } from "../../lib/types";
 
 export function MobileNav({
   active,
   visibleNav,
+  language,
   onNavigate,
 }: {
   active: string;
   visibleNav: typeof nav;
+  language: Language;
   onNavigate: (label: string) => void;
 }) {
   return (
@@ -15,6 +19,7 @@ export function MobileNav({
       {visibleNav.map((item) => {
         const Icon = item.icon;
         const isActive = active === item.label;
+        const displayLabel = navDisplayLabel(item.label, language);
         return (
           <button
             type="button"
@@ -28,7 +33,7 @@ export function MobileNav({
             )}
           >
             <Icon size={14} />
-            {item.label}
+            {displayLabel}
           </button>
         );
       })}

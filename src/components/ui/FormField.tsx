@@ -40,11 +40,12 @@ export function UploadButton({
         type="file"
         accept={accept}
         className="sr-only"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) onFile(file);
-        }}
-      />
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) onFile(file);
+            event.currentTarget.value = "";
+          }}
+        />
     </label>
   );
 }
