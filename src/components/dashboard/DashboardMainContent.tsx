@@ -180,6 +180,7 @@ export function DashboardMainContent({
                     contact: optionalValue(form, "contact"),
                     status: value(form, "status"),
                     description: optionalValue(form, "description"),
+                    manager_user_id: null,
                   });
                   setLabs((prev) => [...prev, newLab]);
                   return newLab;
@@ -210,10 +211,7 @@ export function DashboardMainContent({
                 name="contact"
                 placeholder={language === "en" ? "Contact" : "联系"}
               />
-              <FormSelect name="status" defaultValue="">
-                <option value="" disabled>
-                  {language === "en" ? "Select lab status" : "选择实验室状态"}
-                </option>
+              <FormSelect name="status" defaultValue="active">
                 <option value="active">
                   {language === "en" ? "Active" : "启用"}
                 </option>
@@ -225,9 +223,11 @@ export function DashboardMainContent({
                 </option>
               </FormSelect>
             </div>
-            <FormInput
+            <textarea
               name="description"
               placeholder={language === "en" ? "Description" : "描述"}
+              className="col-span-1 md:col-span-2 rounded-xl border border-stone-300 bg-transparent px-3 py-2 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:border-stone-700"
+              rows={3}
             />
           </ActionForm>
         </div>
