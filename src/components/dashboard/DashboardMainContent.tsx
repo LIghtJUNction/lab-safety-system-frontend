@@ -243,15 +243,15 @@ export function DashboardMainContent({
             alerts={alertItems}
             language={language}
             onAssign={(hazard) =>
-              withAction(
+              void withAction(
                 language === "en" ? "Assign handler" : "指派处理",
                 () => api.claimHazard(hazard.id, session.user.id),
-              )
+              ).catch(() => undefined)
             }
             onConfirm={(hazard) =>
-              withAction(language === "en" ? "Confirm safe" : "确认安全", () =>
+              void withAction(language === "en" ? "Confirm safe" : "确认安全", () =>
                 api.updateHazardStatus(hazard.id, "closed"),
-              )
+              ).catch(() => undefined)
             }
             onReport={() => {
               setActive("隐患管理");

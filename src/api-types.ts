@@ -19,6 +19,7 @@ export type Regulation = {
 
 export type Incident = {
   id: number;
+  lab_id?: number | null;
   title: string;
   lab_name: string;
   occurred_on: string;
@@ -43,6 +44,7 @@ export type Training = {
 };
 export type Equipment = {
   id: number;
+  lab_id?: number | null;
   asset_code: string;
   name: string;
   lab_name: string;
@@ -165,14 +167,38 @@ export type RegulationAnalytics = {
   by_authority: CountBucket[];
 };
 export type RegulationCreate = Omit<Regulation, "id" | "created_at">;
-export type IncidentCreate = Omit<Incident, "id">;
+export type IncidentCreate = {
+  lab_id?: number | null;
+  lab_name?: string | null;
+  title: string;
+  occurred_on: string;
+  severity: string;
+  category: string;
+  root_cause: string;
+  corrective_actions: string;
+  file_url?: string | null;
+};
 export type TrainingCreate = Omit<Training, "id" | "exam_required_score"> & {
   exam_required_score: number;
   starts_on?: string | null;
 };
-export type EquipmentCreate = Omit<Equipment, "id" | "owner"> & {
+export type EquipmentCreate = {
+  asset_code: string;
+  name: string;
+  lab_id?: number | null;
+  lab_name?: string | null;
+  status: string;
   owner?: string | null;
 };
+
+/** Canonical hazard lifecycle: open → claimed → remediation_submitted → closed.
+ * Legacy rows may still show `reported` (alias of open). */
+export type HazardStatus =
+  | "open"
+  | "reported"
+  | "claimed"
+  | "remediation_submitted"
+  | "closed";
 export type BookingCreate = Omit<Booking, "id">;
 export type RepairCreate = Omit<RepairTicket, "id">;
 export type HazardCreate = {

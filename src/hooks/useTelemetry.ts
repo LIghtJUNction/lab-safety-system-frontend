@@ -3,13 +3,16 @@ import { useMemo } from "react";
 import { RepairTicket, SafetyHazard } from "../api";
 import { SensorStatus } from "../lib/types";
 
+/**
+ * Derived lab-safety summary cards from real hazards/repairs.
+ * NOT live sensors, IoT, or telemetry hardware.
+ */
 export type SensorReading = {
   id: string;
   label: string;
   value: string;
   unit: string;
   status: SensorStatus;
-  trend: number[];
   icon: LucideIcon;
   detail: string;
 };
@@ -18,10 +21,6 @@ function statusFor(count: number, dangerAt = 3): SensorStatus {
   if (count >= dangerAt) return "danger";
   if (count > 0) return "warning";
   return "normal";
-}
-
-function trendFromCount(count: number) {
-  return [0, count, count, count, count, count];
 }
 
 function activeHazards(hazards: SafetyHazard[]) {
@@ -40,7 +39,9 @@ export function useTelemetry(hazards: SafetyHazard[], repairs: RepairTicket[]) {
     const chemicalCount = active.filter((h) =>
       /危化|试剂|库存|化学品/i.test(`${h.category} ${h.title}`),
     ).length;
-    const openRepairCount = repairs.filter((repair) => repair.status !== "resolved").length;
+    const openRepairCount = repairs.filter(
+      (repair) => repair.status !== "resolved" && repair.status !== "closed",
+    ).length;
 
     return [
       {
@@ -49,9 +50,8 @@ export function useTelemetry(hazards: SafetyHazard[], repairs: RepairTicket[]) {
         value: String(gasCount),
         unit: "条",
         status: statusFor(gasCount),
-        trend: trendFromCount(gasCount),
         icon: FlaskConical,
-        detail: "由后端隐患标题和分类派生",
+        detail: "由隐患标题/分类统计，非传感器读数",
       },
       {
         id: "repair",
@@ -59,9 +59,8 @@ export function useTelemetry(hazards: SafetyHazard[], repairs: RepairTicket[]) {
         value: String(openRepairCount),
         unit: "单",
         status: statusFor(openRepairCount, 2),
-        trend: trendFromCount(openRepairCount),
         icon: Wrench,
-        detail: "来自后端报修工单状态",
+        detail: "来自报修工单状态，非 IoT 设备",
       },
       {
         id: "access",
@@ -69,9 +68,8 @@ export function useTelemetry(hazards: SafetyHazard[], repairs: RepairTicket[]) {
         value: String(accessCount),
         unit: "条",
         status: statusFor(accessCount),
-        trend: trendFromCount(accessCount),
         icon: DoorOpen,
-        detail: "由后端隐患标题和分类派生",
+        detail: "由隐患标题/分类统计，非传感器读数",
       },
       {
         id: "chemical",
@@ -79,9 +77,8 @@ export function useTelemetry(hazards: SafetyHazard[], repairs: RepairTicket[]) {
         value: String(chemicalCount),
         unit: "条",
         status: statusFor(chemicalCount),
-        trend: trendFromCount(chemicalCount),
         icon: Thermometer,
-        detail: "由后端隐患标题和分类派生",
+        detail: "由隐患标题/分类统计，非传感器读数",
       },
     ] satisfies SensorReading[];
   }, [hazards, repairs]);

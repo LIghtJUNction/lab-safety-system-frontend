@@ -1,8 +1,8 @@
 import { cn } from "../../lib/cn";
 import { SensorReading } from "../../hooks/useTelemetry";
-import { Sparkline } from "../ui/Sparkline";
 import { StatusDot } from "../ui/StatusDot";
 
+/** Summary card for counts derived from hazards/repairs (not live sensors). */
 export function MonitorCard({ sensor }: { sensor: SensorReading }) {
   const Icon = sensor.icon;
   const isAbnormal = sensor.status !== "normal";
@@ -42,20 +42,15 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
         <StatusDot status={sensor.status} />
       </div>
 
-      <div className="mt-4 flex items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-3xl font-semibold tracking-tight text-stone-900">
-            {sensor.value}
-            {sensor.unit ? (
-              <span className="ml-1 text-base font-normal text-stone-400">
-                {sensor.unit}
-              </span>
-            ) : null}
-          </p>
-        </div>
-        <div className="w-28 opacity-80">
-          <Sparkline data={sensor.trend} status={sensor.status} />
-        </div>
+      <div className="mt-4">
+        <p className="font-mono text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+          {sensor.value}
+          {sensor.unit ? (
+            <span className="ml-1 text-base font-normal text-stone-400">
+              {sensor.unit}
+            </span>
+          ) : null}
+        </p>
       </div>
     </article>
   );

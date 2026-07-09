@@ -113,6 +113,32 @@ export function setApiBase(url: string) {
 
 let accessToken: string | null = null;
 
+function withLabQuery(path: string, labId?: number, extra?: Record<string, string>) {
+  const params = new URLSearchParams(extra);
+  if (labId != null && labId > 0) {
+    params.set("lab_id", String(labId));
+  }
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+/** Prefer backend `{ detail: string }` error bodies for UI notices. */
+async function errorMessageFromResponse(response: Response): Promise<string> {
+  const raw = await response.text();
+  if (!raw) {
+    return `Request failed: ${response.status}`;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown };
+    if (typeof parsed.detail === "string" && parsed.detail.trim()) {
+      return parsed.detail;
+    }
+  } catch {
+    // not JSON — fall through to raw body
+  }
+  return raw;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(
     init?.body instanceof FormData
@@ -127,8 +153,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
   });
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed: ${response.status}`);
+    throw new Error(await errorMessageFromResponse(response));
   }
   if (response.status === 204) {
     return undefined as T;
@@ -182,29 +207,38 @@ export const api = {
     }),
   passkeys: () => request<PasskeySummary[]>("/auth/passkeys"),
   me: () => request<AuthUser>("/auth/me"),
-  dashboard: () => request<DashboardStats>("/analytics/dashboard"),
-  incidentAnalytics: () => request<IncidentAnalytics>("/analytics/incidents"),
-  hazardAnalytics: () => request<HazardAnalytics>("/analytics/hazards"),
+  dashboard: (labId?: number) =>
+    request<DashboardStats>(withLabQuery("/analytics/dashboard", labId)),
+  incidentAnalytics: (labId?: number) =>
+    request<IncidentAnalytics>(withLabQuery("/analytics/incidents", labId)),
+  hazardAnalytics: (labId?: number) =>
+    request<HazardAnalytics>(withLabQuery("/analytics/hazards", labId)),
   regulationAnalytics: () =>
     request<RegulationAnalytics>("/analytics/regulations"),
   regulations: (q = "") =>
     request<Regulation[]>(
       `/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`,
     ),
-  incidents: (q = "") =>
-    request<Incident[]>(`/incidents${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  incidents: (q = "", labId?: number) => {
+    const params: Record<string, string> = {};
+    if (q) params.q = q;
+    return request<Incident[]>(withLabQuery("/incidents", labId, params));
+  },
   trainings: () => request<Training[]>("/trainings"),
-  equipment: (q = "") =>
-    request<Equipment[]>(`/equipment${q ? `?q=${encodeURIComponent(q)}` : ""}`),
-  bookings: () => request<Booking[]>("/equipment-bookings"),
-  repairs: () => request<RepairTicket[]>("/repair-tickets"),
+  equipment: (q = "", labId?: number) => {
+    const params: Record<string, string> = {};
+    if (q) params.q = q;
+    return request<Equipment[]>(withLabQuery("/equipment", labId, params));
+  },
+  bookings: (labId?: number) =>
+    request<Booking[]>(withLabQuery("/equipment-bookings", labId)),
+  repairs: (labId?: number) =>
+    request<RepairTicket[]>(withLabQuery("/repair-tickets", labId)),
   users: () => request<User[]>("/users"),
   hazards: (q = "", labId?: number) => {
-    const params = new URLSearchParams();
-    if (q) params.append("q", q);
-    if (labId) params.append("lab_id", String(labId));
-    const qs = params.toString();
-    return request<SafetyHazard[]>(`/hazards${qs ? `?${qs}` : ""}`);
+    const params: Record<string, string> = {};
+    if (q) params.q = q;
+    return request<SafetyHazard[]>(withLabQuery("/hazards", labId, params));
   },
   createRegulation: (payload: RegulationCreate) =>
     request<Regulation>("/regulations", {

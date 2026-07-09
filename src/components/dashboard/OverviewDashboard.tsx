@@ -45,10 +45,17 @@ isDark?: boolean;
       />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {sensors.map((sensor) => (
-            <MonitorCard key={sensor.id} sensor={sensor} />
-          ))}
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
+            {language === "en"
+              ? "Derived from hazards & repairs (not live sensors)"
+              : "由隐患与报修派生的统计（非实时传感器）"}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sensors.map((sensor) => (
+              <MonitorCard key={sensor.id} sensor={sensor} />
+            ))}
+          </div>
         </div>
 
         <div className="space-y-4">

@@ -80,9 +80,9 @@ export function useDashboardRows({
               type="button"
               className={actionBtnClass}
               onClick={() =>
-                withAction("处理报修", () =>
+                void withAction("处理报修", () =>
                   api.updateRepairStatus(item.id, "resolved"),
-                )
+                ).catch(() => undefined)
               }
             >
               <CheckCircle2 size={15} />
@@ -131,9 +131,9 @@ export function useDashboardRows({
                 type="button"
                 className={actionBtnClass}
                 onClick={() =>
-                  withAction("责任认领", () =>
+                  void withAction("责任认领", () =>
                     api.claimHazard(item.id, sessionUserId),
-                  )
+                  ).catch(() => undefined)
                 }
               >
                 认领
@@ -144,9 +144,9 @@ export function useDashboardRows({
                 type="button"
                 className={actionBtnClass}
                 onClick={() =>
-                  withAction("关闭隐患", () =>
+                  void withAction("关闭隐患", () =>
                     api.updateHazardStatus(item.id, "closed"),
-                  )
+                  ).catch(() => undefined)
                 }
               >
                 关闭

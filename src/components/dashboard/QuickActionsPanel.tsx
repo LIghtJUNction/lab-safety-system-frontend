@@ -84,22 +84,32 @@ export function QuickActionsPanel({
         <ActionForm
           title={isEn ? "Record incident case" : "录入事故案例"}
           onSubmit={(form) =>
-            submitAction(isEn ? "Record incident case" : "录入事故案例", () =>
-              api.createIncident({
+            submitAction(isEn ? "Record incident case" : "录入事故案例", () => {
+              const labId = Number(value(form, "lab_id"));
+              if (!labId) {
+                throw new Error(isEn ? "Select a laboratory" : "请选择实验室");
+              }
+              return api.createIncident({
+                lab_id: labId,
                 title: value(form, "title"),
-                lab_name: value(form, "lab_name"),
+                lab_name: labs.find((l) => l.id === labId)?.name ?? undefined,
                 occurred_on: value(form, "occurred_on"),
                 severity: value(form, "severity"),
                 category: value(form, "category"),
                 root_cause: value(form, "root_cause"),
                 corrective_actions: value(form, "corrective_actions"),
                 file_url: optionalValue(form, "file_url"),
-              }),
-            )
+              });
+            })
           }
         >
+          <FormSelect name="lab_id" defaultValue={selectedLabId ? String(selectedLabId) : ""}>
+            <option value="" disabled>{isEn ? "Select lab" : "选择实验室"}</option>
+            {labs.map((lab) => (
+              <option key={lab.id} value={lab.id}>{lab.name}</option>
+            ))}
+          </FormSelect>
           <FormInput name="title" placeholder={isEn ? "Case title" : "案例标题"} />
-          <FormInput name="lab_name" placeholder={isEn ? "Laboratory" : "实验室"} />
           <FormInput
             name="occurred_on"
             type="date"
@@ -127,6 +137,9 @@ export function QuickActionsPanel({
             submitAction(isEn ? "Report hazard" : "上报隐患", async () => {
               const user = sessionUserOrThrow(session);
               const labId = Number(value(form, "lab_id"));
+              if (!labId) {
+                throw new Error(isEn ? "Select a laboratory" : "请选择实验室");
+              }
               return api.createHazard({
                 lab_id: labId,
                 title: value(form, "title"),
@@ -198,20 +211,30 @@ export function QuickActionsPanel({
 <ActionForm
           title={isEn ? "Register equipment" : "登记设备"}
           onSubmit={(form) =>
-            submitAction(isEn ? "Register equipment" : "登记设备", () =>
-              api.createEquipment({
+            submitAction(isEn ? "Register equipment" : "登记设备", () => {
+              const labId = Number(value(form, "lab_id"));
+              if (!labId) {
+                throw new Error(isEn ? "Select a laboratory" : "请选择实验室");
+              }
+              return api.createEquipment({
                 asset_code: value(form, "asset_code"),
                 name: value(form, "name"),
-                lab_name: value(form, "lab_name"),
+                lab_id: labId,
+                lab_name: labs.find((l) => l.id === labId)?.name ?? undefined,
                 status: value(form, "status"),
                 owner: optionalValue(form, "owner"),
-              }),
-            )
+              });
+            })
           }
         >
+          <FormSelect name="lab_id" defaultValue={selectedLabId ? String(selectedLabId) : ""}>
+            <option value="" disabled>{isEn ? "Select lab" : "选择实验室"}</option>
+            {labs.map((lab) => (
+              <option key={lab.id} value={lab.id}>{lab.name}</option>
+            ))}
+          </FormSelect>
           <FormInput name="asset_code" placeholder={isEn ? "Asset code" : "资产编号"} />
           <FormInput name="name" placeholder={isEn ? "Equipment name" : "设备名称"} />
-          <FormInput name="lab_name" placeholder={isEn ? "Laboratory" : "实验室"} />
           <FormSelect name="status" defaultValue="">
             <option value="" disabled>{isEn ? "Select equipment status" : "选择设备状态"}</option>
             <option value="available">{isEn ? "Available" : "可预约"}</option>
@@ -393,9 +416,9 @@ export function QuickActionsPanel({
         <button
           type="button"
           onClick={() =>
-            withAction(isEn ? "Claim responsibility" : "责任认领", () =>
+            void withAction(isEn ? "Claim responsibility" : "责任认领", () =>
               claimFirstHazard(session, hazards),
-            )
+            ).catch(() => undefined)
           }
           className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white/90 px-4 py-4 text-sm font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-200 dark:hover:border-stone-600"
         >
@@ -410,7 +433,9 @@ export function QuickActionsPanel({
           icon={<ClipboardList size={16} />}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md"
           onFile={(file) =>
-            void withAction(isEn ? "Upload regulation file" : "上传法规文件", () => api.uploadRegulation(file))
+            void withAction(isEn ? "Upload regulation file" : "上传法规文件", () => api.uploadRegulation(file)).catch(
+              () => undefined,
+            )
           }
         />
       ) : null}
@@ -420,7 +445,9 @@ export function QuickActionsPanel({
           icon={<AlertTriangle size={16} />}
           accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md"
           onFile={(file) =>
-            void withAction(isEn ? "Upload case attachment" : "上传案例附件", () => api.uploadIncident(file))
+            void withAction(isEn ? "Upload case attachment" : "上传案例附件", () => api.uploadIncident(file)).catch(
+              () => undefined,
+            )
           }
         />
       ) : null}
@@ -432,7 +459,7 @@ export function QuickActionsPanel({
           onFile={(file) =>
             void withAction(isEn ? "Upload issue photo" : "上传问题照片", () =>
               uploadHazardIssuePhotoForReport(session, file),
-            )
+            ).catch(() => undefined)
           }
         />
       ) : null}
@@ -444,7 +471,7 @@ export function QuickActionsPanel({
           onFile={(file) =>
             void withAction(isEn ? "Upload remediation photo" : "上传整改照片", () =>
               remediateFirstHazard(session, hazards, file),
-            )
+            ).catch(() => undefined)
           }
         />
       ) : null}

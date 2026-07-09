@@ -154,16 +154,16 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
         nextHazards,
         nextLabMembers,
       ] = await Promise.all([
-        api.dashboard(),
-        api.incidentAnalytics(),
-        api.hazardAnalytics(),
+        api.dashboard(selectedLabId || undefined),
+        api.incidentAnalytics(selectedLabId || undefined),
+        api.hazardAnalytics(selectedLabId || undefined),
         api.regulationAnalytics(),
         api.regulations(search),
-        api.incidents(search),
+        api.incidents(search, selectedLabId || undefined),
         api.trainings(),
-        api.equipment(search),
-        api.bookings(),
-        api.repairs(),
+        api.equipment(search, selectedLabId || undefined),
+        api.bookings(selectedLabId || undefined),
+        api.repairs(selectedLabId || undefined),
         canManageUsers ? api.users() : Promise.resolve([]),
         api.hazards(search, selectedLabId || undefined),
         selectedLabId ? api.listLabUsers(selectedLabId) : Promise.resolve([]),
@@ -343,7 +343,7 @@ const {
   isAdmin,
 });
 
-  async function withAction(label: string, action: () => Promise<unknown>) {
+  async function withAction(label: string, action: () => Promise<unknown>): Promise<void> {
     lastActionAt.current = Date.now();
     setNotice(appNotice.processing(language, label));
     try {
@@ -362,10 +362,12 @@ const {
       setNotice(
         appNotice.failure(language, label, error instanceof Error ? error.message : undefined),
       );
+      // Rethrow so ActionForm (and other awaiters) never treat failure as success.
+      throw error;
     }
   }
 
-  async function submitAction(label: string, action: () => Promise<unknown>) {
+  async function submitAction(label: string, action: () => Promise<unknown>): Promise<void> {
     await withAction(label, action);
   }
 
@@ -467,7 +469,11 @@ const quickActionsProps = {
             query={query}
             theme={theme}
             onQueryChange={setQuery}
-            onBindPasskey={() => withAction(appNotice.bindPasskey(language), () => bindPasskey(session))}
+            onBindPasskey={() =>
+              void withAction(appNotice.bindPasskey(language), () => bindPasskey(session)).catch(
+                () => undefined,
+              )
+            }
             onToggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
             onLogout={() => {
               api.setAccessToken(null);
