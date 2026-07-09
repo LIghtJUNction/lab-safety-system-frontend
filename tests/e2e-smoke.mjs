@@ -56,8 +56,23 @@ async function capture(page, name) {
   await page.screenshot({ path: join(screenshotDir, `${name}.png`), fullPage: true });
 }
 
-async function expectDisabledQuickActions(page) {
-  // Buttons are not present in the current UI design
+async function expectQuickActionsOpenWorkflows(page) {
+  const workflows = [
+    { button: /上报隐患|Report hazard/, form: /上报隐患|Report hazard/ },
+    { button: /预约设备|Book equipment/, form: /预约设备|Book equipment/ },
+    { button: /培训考核|Training exam/, form: /创建培训|Create training/ },
+  ];
+
+  for (const workflow of workflows) {
+    const button = page.getByRole("button", { name: workflow.button }).first();
+    await expect(button).toBeVisible();
+    await button.click();
+    const form = page
+      .locator("form.action-form")
+      .filter({ has: page.getByRole("heading", { name: workflow.form }) })
+      .first();
+    await expect(form).toBeVisible();
+  }
 }
 
 async function login(page, username, password) {
@@ -292,7 +307,7 @@ async function verifyNavigationScreens(page, records) {
 
   await page.goto(`${baseUrl}/labs/${lab.id}/overview`, { waitUntil: "domcontentloaded" });
   await waitForSignedInShell(page);
-  await expectDisabledQuickActions(page);
+  await expectQuickActionsOpenWorkflows(page);
   await capture(page, "lab-overview");
 }
 
