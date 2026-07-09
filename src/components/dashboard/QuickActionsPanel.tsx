@@ -47,9 +47,37 @@ export function QuickActionsPanel({
   withAction,
 }: QuickActionsPanelProps) {
   const isEn = language === "en";
+  const hasAnyAction =
+    showRegulations ||
+    showIncidents ||
+    showHazards ||
+    showTrainings ||
+    showEquipment ||
+    showRepairs ||
+    showUsers;
+
+  if (!hasAnyAction) return null;
 
   return (
-    <section className="quick-actions mt-8 grid gap-4 pb-8 md:grid-cols-2 xl:grid-cols-3">
+    <section className="quick-actions-wrap space-y-4 pb-10">
+      <div className="flex items-end justify-between gap-3 border-b border-stone-200/80 pb-3 dark:border-stone-800">
+        <div>
+          <h2 className="text-sm font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+            {isEn ? "Action desk" : "操作台"}
+          </h2>
+          <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+            {isEn
+              ? "Create and update records for the current laboratory"
+              : "为当前实验室创建与更新业务记录"}
+          </p>
+        </div>
+        {selectedLabId ? (
+          <span className="hidden text-[11px] font-medium text-stone-400 sm:inline dark:text-stone-500">
+            lab_id={selectedLabId}
+          </span>
+        ) : null}
+      </div>
+      <div className="quick-actions grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {isAdmin && showRegulations ? (
         <ActionForm
           title={isEn ? "Create regulation" : "创建法规"}
@@ -475,6 +503,7 @@ export function QuickActionsPanel({
           }
         />
       ) : null}
+      </div>
     </section>
   );
 }

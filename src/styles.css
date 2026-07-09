@@ -99,16 +99,36 @@
 }
 
 .lab-grid-bg {
+  background-color: #fafaf9;
   background-image:
-    linear-gradient(rgb(148 163 184 / 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(148 163 184 / 0.06) 1px, transparent 1px);
-  background-size: 48px 48px;
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgb(251 191 36 / 0.08), transparent),
+    linear-gradient(rgb(148 163 184 / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 0.07) 1px, transparent 1px);
+  background-size:
+    auto,
+    48px 48px,
+    48px 48px;
 }
 
 [data-theme="dark"] .lab-grid-bg {
+  background-color: #0c0a09;
   background-image:
+    radial-gradient(ellipse 70% 40% at 50% -10%, rgb(180 83 9 / 0.12), transparent),
     linear-gradient(rgb(100 116 139 / 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgb(100 116 139 / 0.12) 1px, transparent 1px);
+  background-size:
+    auto,
+    48px 48px,
+    48px 48px;
+}
+
+/* Sticky mobile nav scroll fade */
+.sidebar-mobile {
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, #000 90%, transparent);
+}
+.sidebar-mobile::-webkit-scrollbar {
+  display: none;
 }
 
 [data-theme="dark"] {

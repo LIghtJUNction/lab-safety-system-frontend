@@ -379,6 +379,33 @@ const {
     navigateTo(routePathForLabel(label, isSystemAdmin, selectedLabId || 0));
   };
 
+  const handleLabChange = (labId: number) => {
+    setSelectedLabId(labId);
+    // Keep current page tab when switching labs (lab-scoped routes).
+    if (!isSystemAdmin || parsedRoute.isLabRoute) {
+      navigateTo(routePathForLabel(routeLabel(parsedRoute), isSystemAdmin, labId));
+    }
+  };
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem("sidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("sidebarCollapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   const visibleNav = visibleNavForRole(isSystemAdmin, currentLabRole);
   const pageTitle = pageTitleForContext(isSystemAdmin, currentLabRole, labs, selectedLabId, language);
   const pageCopy = pageCopyForRole(isSystemAdmin, currentLabRole, language);
@@ -448,43 +475,52 @@ const quickActionsProps = {
         visibleNav={visibleNav}
         language={language}
         onNavigate={setActive}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapsed}
       />
 
       <section className="workspace lab-grid-bg flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-8">
-          <MobileNav
-            active={active}
-            visibleNav={visibleNav}
-            language={language}
-            onNavigate={setActive}
-          />
-          <TopBar
-            pageTitle={pageTitle}
-            pageCopy={pageCopy}
-            notice={notice}
-            loading={loading}
-            session={session}
-            isAdmin={isAdmin}
-            language={language}
-            query={query}
-            theme={theme}
-            onQueryChange={setQuery}
-            onBindPasskey={() =>
-              void withAction(appNotice.bindPasskey(language), () => bindPasskey(session)).catch(
-                () => undefined,
-              )
-            }
-            onToggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
-            onLogout={() => {
-              api.setAccessToken(null);
-              window.localStorage.removeItem(SESSION_KEY);
-              setSession(null);
-            }}
-          />
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full max-w-[1400px] space-y-6">
+            <MobileNav
+              active={active}
+              visibleNav={visibleNav}
+              language={language}
+              onNavigate={setActive}
+            />
+            <TopBar
+              pageTitle={pageTitle}
+              pageCopy={pageCopy}
+              notice={notice}
+              loading={loading}
+              session={session}
+              isAdmin={isAdmin}
+              language={language}
+              query={query}
+              theme={theme}
+              labs={labs}
+              selectedLabId={selectedLabId}
+              currentLabRole={currentLabRole}
+              onQueryChange={setQuery}
+              onLabChange={handleLabChange}
+              onBindPasskey={() =>
+                void withAction(appNotice.bindPasskey(language), () => bindPasskey(session)).catch(
+                  () => undefined,
+                )
+              }
+              onToggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
+              onLogout={() => {
+                api.setAccessToken(null);
+                window.localStorage.removeItem(SESSION_KEY);
+                setSession(null);
+              }}
+              onRetry={() => void refresh(query)}
+            />
 
-<DashboardMainContent {...dashboardMainProps} />
+            <DashboardMainContent {...dashboardMainProps} />
 
-<QuickActionsPanel {...quickActionsProps} />
+            <QuickActionsPanel {...quickActionsProps} />
+          </div>
         </div>
       </section>
     </main>

@@ -1,7 +1,8 @@
 import { Fingerprint, LogOut, Moon, Search, Sun } from "lucide-react";
-import { AuthSession } from "../../api";
+import type { AuthSession, Lab } from "../../api";
 import { cn } from "../../lib/cn";
-import { Language, ThemeMode } from "../../lib/types";
+import type { Language, ThemeMode } from "../../lib/types";
+import { LabSwitcher } from "./LabSwitcher";
 
 export function TopBar({
   pageTitle,
@@ -13,7 +14,11 @@ export function TopBar({
   language,
   query,
   theme,
+  labs,
+  selectedLabId,
+  currentLabRole,
   onQueryChange,
+  onLabChange,
   onBindPasskey,
   onToggleTheme,
   onLogout,
@@ -28,33 +33,64 @@ export function TopBar({
   language: Language;
   query: string;
   theme: ThemeMode;
+  labs: Lab[];
+  selectedLabId: number | null;
+  currentLabRole: string | null;
   onQueryChange: (value: string) => void;
+  onLabChange: (labId: number) => void;
   onBindPasskey: () => void;
   onToggleTheme: () => void;
   onLogout: () => void;
   onRetry?: () => void;
 }) {
+  const isEn = language === "en";
   const roleLabel =
-    session.user.role === "super_admin"
-      ? language === "en" ? "Super admin" : "超级管理员"
-      : isAdmin
-        ? language === "en" ? "Admin" : "管理员"
-        : language === "en" ? "User" : "普通用户";
+    session.user.role === "system_admin" || session.user.role === "super_admin"
+      ? isEn
+        ? "System admin"
+        : "系统管理员"
+      : currentLabRole === "lab_admin"
+        ? isEn
+          ? "Lab admin"
+          : "实验室管理员"
+        : currentLabRole === "lab_member"
+          ? isEn
+            ? "Lab member"
+            : "实验室成员"
+          : currentLabRole === "visitor"
+            ? isEn
+              ? "Visitor"
+              : "访客"
+            : isAdmin
+              ? isEn
+                ? "Admin"
+                : "管理员"
+              : isEn
+                ? "User"
+                : "普通用户";
   const failed = notice.includes("失败") || notice.toLowerCase().includes("failed");
 
   return (
     <header className="topbar space-y-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 lg:text-2xl">
-            {pageTitle}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-stone-500 dark:text-stone-400">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 lg:text-2xl">
+              {pageTitle}
+            </h1>
+            {selectedLabId ? (
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25">
+                {labs.find((l) => l.id === selectedLabId)?.name ??
+                  (isEn ? "Lab" : "实验室")}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-500 dark:text-stone-400">
             {pageCopy}
           </p>
           <p
             className={cn(
-              "status mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium",
+              "status mt-2.5 inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-medium",
               loading
                 ? "loading bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30"
                 : failed
@@ -62,27 +98,32 @@ export function TopBar({
                   : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30",
             )}
           >
-            {notice}
-            {failed && onRetry && (
+            <span className="truncate">{notice}</span>
+            {failed && onRetry ? (
               <button
+                type="button"
                 onClick={onRetry}
-                className="ml-2 text-[10px] underline hover:no-underline"
+                className="ml-2 shrink-0 text-[10px] underline hover:no-underline"
               >
-                {language === "en" ? "Retry" : "重试"}
+                {isEn ? "Retry" : "重试"}
               </button>
-            )}
+            ) : null}
           </p>
         </div>
 
         <div className="user-menu flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-sm transition-all dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 whitespace-nowrap">
-            <span className="font-medium text-stone-800 dark:text-stone-200">
+          <LabSwitcher
+            labs={labs}
+            selectedLabId={selectedLabId}
+            language={language}
+            onChange={onLabChange}
+          />
+          <div className="inline-flex max-w-full items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-sm dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
+            <span className="truncate font-medium text-stone-800 dark:text-stone-200">
               {session.user.display_name}
             </span>
-            <span className="text-stone-400 dark:text-stone-500">·</span>
-            <span className="text-stone-500 dark:text-stone-400">
-              {roleLabel}
-            </span>
+            <span className="text-stone-300 dark:text-stone-600">·</span>
+            <span className="shrink-0 text-stone-500 dark:text-stone-400">{roleLabel}</span>
           </div>
           <button
             type="button"
@@ -90,9 +131,7 @@ export function TopBar({
             className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
           >
             {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
-            {theme === "light"
-              ? language === "en" ? "Dark" : "暗色"
-              : language === "en" ? "Light" : "亮色"}
+            {theme === "light" ? (isEn ? "Dark" : "暗色") : isEn ? "Light" : "亮色"}
           </button>
           <button
             type="button"
@@ -108,7 +147,7 @@ export function TopBar({
             className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-stone-800 hover:shadow-md dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
           >
             <LogOut size={15} />
-            {language === "en" ? "Sign out" : "退出"}
+            {isEn ? "Sign out" : "退出"}
           </button>
         </div>
       </div>
@@ -121,7 +160,11 @@ export function TopBar({
         <input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={language === "en" ? "Search regulations, cases, equipment" : "搜索法规、案例、设备"}
+          placeholder={
+            isEn
+              ? "Search regulations, cases, equipment, hazards"
+              : "搜索法规、案例、设备、隐患"
+          }
           className="w-full rounded-xl border border-stone-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-stone-800 shadow-sm outline-none backdrop-blur-md transition-all duration-200 placeholder:text-stone-400 focus:border-stone-400 focus:ring-2 focus:ring-stone-200 dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-100 dark:focus:border-stone-500 dark:focus:ring-stone-700/40"
         />
       </label>

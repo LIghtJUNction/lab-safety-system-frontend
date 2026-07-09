@@ -26,31 +26,44 @@ export function Sidebar({
         collapsed ? "w-16" : "w-[240px]"
       )}
     >
-      <div className="brand flex items-center gap-3 px-5 py-6">
-        <div className="brand-mark flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+      <div
+        className={cn(
+          "brand flex items-center gap-3 py-6",
+          collapsed ? "flex-col px-2" : "px-5",
+        )}
+      >
+        <div className="brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20">
           <ShieldCheck size={20} strokeWidth={2} />
         </div>
         {!collapsed && (
-          <div>
+          <div className="min-w-0 flex-1">
             <strong className="block text-sm font-semibold tracking-wide">LabSafe</strong>
             <span className="text-[11px] text-stone-400">
               {language === "en" ? "Laboratory Safety" : "实验室安全管理"}
             </span>
           </div>
         )}
-        {onToggleCollapse && (
+        {onToggleCollapse ? (
           <button
+            type="button"
             onClick={onToggleCollapse}
-            className="ml-auto p-1 text-stone-400 hover:text-white"
+            className={cn(
+              "rounded-lg p-1.5 text-stone-400 transition hover:bg-white/10 hover:text-white",
+              collapsed && "mt-1",
+            )}
             aria-label={
               collapsed
-                ? language === "en" ? "Expand sidebar" : "展开侧边栏"
-                : language === "en" ? "Collapse sidebar" : "收起侧边栏"
+                ? language === "en"
+                  ? "Expand sidebar"
+                  : "展开侧边栏"
+                : language === "en"
+                  ? "Collapse sidebar"
+                  : "收起侧边栏"
             }
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
-        )}
+        ) : null}
       </div>
 
       <nav className="flex-1 space-y-1 px-3 pb-6">

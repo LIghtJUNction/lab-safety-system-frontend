@@ -136,6 +136,7 @@ export function useDashboardRows({
                   ).catch(() => undefined)
                 }
               >
+                <CheckCircle2 size={14} />
                 认领
               </button>
             ) : null}
@@ -149,7 +150,8 @@ export function useDashboardRows({
                   ).catch(() => undefined)
                 }
               >
-                关闭
+                <CheckCircle2 size={14} />
+                闭环
               </button>
             ) : null}
           </>
