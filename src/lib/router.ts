@@ -34,7 +34,12 @@ export function routeLabel(route: AppRoute) {
 }
 
 export function routePathForLabel(label: string, isSystemAdmin: boolean, labId: number) {
-  if (isSystemAdmin) return systemPathForLabel(label);
+  if (
+    isSystemAdmin &&
+    ["系统总览", "实验室管理", "用户管理", "全局配置", "邀请管理"].includes(label)
+  ) {
+    return systemPathForLabel(label);
+  }
   return labPathForLabel(label, labId);
 }
 

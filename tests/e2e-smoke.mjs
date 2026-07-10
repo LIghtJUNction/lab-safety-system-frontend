@@ -7,7 +7,8 @@ import { join } from "node:path";
 const baseUrl = process.env.E2E_BASE_URL ?? "http://localhost:5174";
 const adminUser = process.env.E2E_ADMIN_USER ?? "cli_super";
 const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? "StrongerAdmin123!";
-const federatedSecret = process.env.E2E_FEDERATED_SECRET ?? "federated-local-secret";
+const federatedSecret =
+  process.env.E2E_FEDERATED_SECRET ?? "federated-e2e-signing-key-2026-strong-9f3a1c7b";
 const suffix = Date.now().toString(36);
 const screenshotDir = process.env.E2E_SCREENSHOT_DIR ?? join("test-artifacts", "screenshots", suffix);
 
@@ -56,17 +57,19 @@ async function capture(page, name) {
   await page.screenshot({ path: join(screenshotDir, `${name}.png`), fullPage: true });
 }
 
-async function expectQuickActionsOpenWorkflows(page) {
+async function expectQuickActionsOpenWorkflows(page, labId) {
   const workflows = [
-    { button: /上报隐患|Report hazard/, form: /上报隐患|Report hazard/ },
-    { button: /预约设备|Book equipment/, form: /预约设备|Book equipment/ },
-    { button: /培训考核|Training exam/, form: /创建培训|Create training/ },
+    { button: /上报隐患|Report hazard/, form: /上报隐患|Report hazard/, path: "hazards" },
+    { button: /预约设备|Book equipment/, form: /预约设备|Book equipment/, path: "bookings" },
+    { button: /培训考核|Training exam/, form: /创建培训|Create training/, path: "trainings" },
   ];
 
   for (const workflow of workflows) {
+    await page.goto(`${baseUrl}/labs/${labId}/overview`, { waitUntil: "domcontentloaded" });
     const button = page.getByRole("button", { name: workflow.button }).first();
     await expect(button).toBeVisible();
     await button.click();
+    await expect(page).toHaveURL(`${baseUrl}/labs/${labId}/${workflow.path}`);
     const form = page
       .locator("form.action-form")
       .filter({ has: page.getByRole("heading", { name: workflow.form }) })
@@ -182,9 +185,49 @@ async function verifyLoginMethods(page) {
     const response = await page.request.get(
       federatedUrl(provider, `e2e_${provider}_${suffix}`, `e2e_${provider}_${suffix}@example.com`),
     );
-    expect([200, 403]).toContain(response.status());
-    if (response.status() === 200) expect(await response.text()).toContain("#session=");
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain("#session=");
   }
+}
+
+async function verifySystemNavigation(page) {
+  const sidebar = page.locator("aside.sidebar");
+  const screens = [
+    {
+      button: "系统总览",
+      path: "/system/overview",
+      content: page.locator("section.metrics").getByText("法规条例", { exact: true }),
+    },
+    {
+      button: "实验室管理",
+      path: "/system/labs",
+      content: page.getByRole("heading", { name: "新建实验室" }),
+    },
+    {
+      button: "用户管理",
+      path: "/system/users",
+      content: page.getByRole("heading", { name: "用户与登录方式" }),
+    },
+    {
+      button: "邀请管理",
+      path: "/system/invitations",
+      content: page.getByRole("heading", { name: "创建新邀请链接" }),
+    },
+    {
+      button: "全局配置",
+      path: "/system/config",
+      content: page.getByRole("heading", { name: "登录页轮播文案" }),
+    },
+  ];
+
+  for (const screen of screens) {
+    await sidebar.getByRole("button", { name: screen.button, exact: true }).click();
+    await expect(page).toHaveURL(`${baseUrl}${screen.path}`);
+    await expect(screen.content).toBeVisible();
+  }
+
+  await sidebar.getByRole("button", { name: "系统总览", exact: true }).click();
+  await expect(page).toHaveURL(`${baseUrl}/system/overview`);
 }
 
 async function createCoreRecords(page) {
@@ -255,7 +298,7 @@ async function verifyBusinessFlows(page, records) {
   await page.goto(`${baseUrl}/labs/${lab.id}/incidents`, { waitUntil: "domcontentloaded" });
   await fillFormByTitle(page, "录入事故案例", {
     title: `E2E 事故 ${suffix}`,
-    lab_name: lab.name,
+    lab_id: String(lab.id),
     occurred_on: "2026-07-07",
     severity: "medium",
     category: "用电安全",
@@ -307,7 +350,7 @@ async function verifyNavigationScreens(page, records) {
 
   await page.goto(`${baseUrl}/labs/${lab.id}/overview`, { waitUntil: "domcontentloaded" });
   await waitForSignedInShell(page);
-  await expectQuickActionsOpenWorkflows(page);
+  await expectQuickActionsOpenWorkflows(page, lab.id);
   await capture(page, "lab-overview");
 }
 
@@ -374,6 +417,7 @@ try {
   await page.getByRole("button", { name: /使用 Passkey/ }).click();
   await waitForSignedInShell(page);
   await capture(page, "system-overview");
+  await verifySystemNavigation(page);
 
   const records = await createCoreRecords(page);
   await verifyNavigationScreens(page, records);
