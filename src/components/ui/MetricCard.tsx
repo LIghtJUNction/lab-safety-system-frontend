@@ -25,8 +25,8 @@ export function MetricCard({
   };
 
   return (
-    <div className="group rounded-2xl border border-stone-200/80 bg-white/90 p-4 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-800 dark:bg-stone-900/80">
-      <div className="flex items-start justify-between gap-3">
+    <div className="surface-bezel surface-interactive group rounded-[1.45rem] p-1.5">
+      <div className="surface-core flex h-full items-start justify-between gap-3 rounded-[1.1rem] p-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
             {label}
@@ -38,11 +38,11 @@ export function MetricCard({
         </div>
         <div
           className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-xl ring-1",
+            "flex h-10 w-10 items-center justify-center rounded-[0.9rem] ring-1 transition-transform duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rotate-[-3deg] group-hover:scale-105",
             accents[accent],
           )}
         >
-          <Icon size={18} strokeWidth={1.75} />
+          <Icon size={18} strokeWidth={1.55} />
         </div>
       </div>
     </div>

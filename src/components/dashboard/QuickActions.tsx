@@ -27,14 +27,14 @@ export function QuickActions({
       desc: isEn ? "Open the hazard reporting workflow" : "进入隐患上报流程",
       icon: Siren,
       onClick: onReport,
-      style: "bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500",
+      style: "bg-amber-500 text-stone-950 ring-amber-400/40 dark:bg-amber-500",
     },
     {
       label: isEn ? "Book equipment" : "预约设备",
       desc: isEn ? "Open equipment booking and repair actions" : "进入设备预约与报修",
       icon: CalendarClock,
       onClick: onEquipment,
-      style: "bg-stone-900 text-white hover:bg-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700",
+      style: "bg-stone-900 text-white ring-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:ring-stone-200",
     },
     {
       label: isEn ? "Training exam" : "培训考核",
@@ -42,12 +42,13 @@ export function QuickActions({
       icon: GraduationCap,
       onClick: onTraining,
       style:
-        "border border-stone-200 bg-white text-stone-800 hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600",
+        "bg-white text-stone-800 ring-stone-200 dark:bg-stone-900 dark:text-stone-200 dark:ring-stone-700",
     },
   ];
 
   return (
-    <section className="rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
+    <section className="surface-bezel rounded-[1.55rem] p-1.5">
+      <div className="surface-core rounded-[1.15rem] p-5">
       <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">
         {isEn ? "Quick actions" : "快捷操作"}
       </h2>
@@ -62,10 +63,10 @@ export function QuickActions({
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${action.style}`}
+              className={`surface-interactive group flex min-h-14 w-full items-center gap-3 rounded-[1rem] px-4 py-3 text-left ring-1 ${action.style}`}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 dark:bg-white/10 dark:ring-white/10">
-                <Icon size={17} />
+              <span className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] bg-white/15 ring-1 ring-white/20 transition-transform duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105 dark:bg-white/10 dark:ring-white/10">
+                <Icon size={17} strokeWidth={1.55} />
               </span>
               <span>
                 <span className="block text-sm font-medium">{action.label}</span>
@@ -74,6 +75,7 @@ export function QuickActions({
             </button>
           );
         })}
+      </div>
       </div>
     </section>
   );

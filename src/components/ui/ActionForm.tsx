@@ -18,28 +18,33 @@ export function ActionForm({
   actionKey?: string;
 }) {
   const [busy, setBusy] = useState(false);
- const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     setMessage(null);
     try {
- const language = currentLanguage();
- await onSubmit(new FormData(event.currentTarget));
- event.currentTarget.reset();
- setMessage({
-   text: language === "en" ? "Created successfully." : "创建成功！",
-   tone: "ok",
- });
+      const language = currentLanguage();
+      await onSubmit(new FormData(event.currentTarget));
+      event.currentTarget.reset();
+      setMessage({
+        text: language === "en" ? "Created successfully." : "创建成功！",
+        tone: "ok",
+      });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
- const language = currentLanguage();
- const errMsg = error instanceof Error ? error.message : language === "en" ? "Submission failed" : "提交失败";
- setMessage({
-   text: language === "en" ? `Failed: ${errMsg}` : `失败：${errMsg}`,
-   tone: "error",
- });
+      const language = currentLanguage();
+      const errMsg =
+        error instanceof Error
+          ? error.message
+          : language === "en"
+            ? "Submission failed"
+            : "提交失败";
+      setMessage({
+        text: language === "en" ? `Failed: ${errMsg}` : `失败：${errMsg}`,
+        tone: "error",
+      });
       setTimeout(() => setMessage(null), 5000);
     } finally {
       setBusy(false);
@@ -49,10 +54,11 @@ export function ActionForm({
   const language = currentLanguage();
   return (
     <form
-      className="action-form rounded-2xl border border-stone-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-md transition-all duration-300 hover:border-stone-300 hover:shadow-md dark:border-stone-800 dark:bg-stone-900/80 dark:hover:border-stone-700"
+      className="action-form surface-bezel surface-interactive rounded-[1.55rem] p-1.5"
       data-action={actionKey}
       onSubmit={handleSubmit}
     >
+      <div className="surface-core rounded-[1.15rem] p-5">
       {title ? (
         <h3 className="mb-4 text-sm font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           {title}
@@ -62,9 +68,9 @@ export function ActionForm({
       <button
         type="submit"
         disabled={busy}
-        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-stone-800 hover:shadow-md disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+        className="surface-interactive mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
       >
-        <Send size={15} />
+        <Send size={15} strokeWidth={1.55} />
         {busy
           ? language === "en"
             ? "Submitting"
@@ -84,6 +90,7 @@ export function ActionForm({
           {message.text}
         </p>
       ) : null}
+      </div>
     </form>
   );
 }

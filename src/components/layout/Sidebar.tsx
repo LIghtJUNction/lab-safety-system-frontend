@@ -22,8 +22,8 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sidebar hidden shrink-0 flex-col border-r border-stone-200/80 bg-stone-900 text-white lg:flex transition-all duration-300",
-        collapsed ? "w-16" : "w-[240px]"
+        "sidebar sticky top-3 hidden h-[calc(100dvh-1.5rem)] shrink-0 flex-col overflow-hidden rounded-[1.75rem] border border-white/8 bg-[#171513] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_24px_70px_-36px_rgba(0,0,0,0.8)] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex",
+        collapsed ? "w-[72px]" : "w-[248px]",
       )}
     >
       <div
@@ -32,8 +32,8 @@ export function Sidebar({
           collapsed ? "flex-col px-2" : "px-5",
         )}
       >
-        <div className="brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20">
-          <ShieldCheck size={20} strokeWidth={2} />
+        <div className="brand-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] bg-amber-400/12 text-amber-300 ring-1 ring-amber-300/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <ShieldCheck size={20} strokeWidth={1.6} />
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
@@ -48,7 +48,7 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             className={cn(
-              "rounded-lg p-1.5 text-stone-400 transition hover:bg-white/10 hover:text-white",
+              "flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/8 hover:text-white active:scale-95",
               collapsed && "mt-1",
             )}
             aria-label={
@@ -66,7 +66,7 @@ export function Sidebar({
         ) : null}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 pb-6">
+      <nav className="flex-1 space-y-1.5 px-3 pb-6">
         {visibleNav.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.label;
@@ -75,23 +75,26 @@ export function Sidebar({
             <button
               type="button"
               className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-300",
+                "relative flex min-h-11 w-full items-center gap-3 overflow-hidden rounded-[0.95rem] px-3.5 py-2.5 text-sm font-medium transition-[transform,background-color,color] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985]",
                 isActive
-                  ? "active bg-white/10 text-white shadow-inner ring-1 ring-white/10"
-                  : "text-stone-400 hover:bg-white/5 hover:text-stone-200",
+                  ? "active bg-white/9 text-white ring-1 ring-white/10"
+                  : "text-stone-400 hover:translate-x-0.5 hover:bg-white/5 hover:text-stone-200",
               )}
               key={item.label}
               onClick={() => onNavigate(item.label)}
               title={collapsed ? displayLabel : undefined}
             >
-              <Icon size={17} strokeWidth={isActive ? 2 : 1.75} />
+              {isActive ? (
+                <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]" />
+              ) : null}
+              <Icon size={17} strokeWidth={1.55} />
               {!collapsed && <span className="truncate">{displayLabel}</span>}
             </button>
           );
         })}
       </nav>
 
-      <div className="border-t border-white/10 mt-auto px-5 py-4">
+      <div className="mt-auto border-t border-white/8 px-5 py-4">
         {!collapsed && (
           <>
             <p className="text-[10px] uppercase tracking-widest text-stone-500">

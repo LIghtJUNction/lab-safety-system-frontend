@@ -19,7 +19,7 @@ export function AnalyticsPanel({
   const max = Math.max(...items.map((i) => i.count), 1);
 
   return (
-    <section className="panel analysis rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-sm backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/70">
+    <section className="panel analysis rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/70">
       <div className="panel-title flex items-center justify-between">
         <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{title}</h2>
         <button

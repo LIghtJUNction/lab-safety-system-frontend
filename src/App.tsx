@@ -469,7 +469,7 @@ const quickActionsProps = {
 };
 
   return (
-    <main className="app-shell flex min-h-screen bg-stone-50 dark:bg-stone-950">
+    <main className="app-shell flex min-h-[100dvh] gap-2 p-2 lg:gap-3 lg:p-3">
       <Sidebar
         active={active}
         visibleNav={visibleNav}
@@ -479,9 +479,9 @@ const quickActionsProps = {
         onToggleCollapse={toggleSidebarCollapsed}
       />
 
-      <section className="workspace lab-grid-bg flex min-w-0 flex-1 flex-col">
+      <section className="workspace lab-grid-bg flex min-h-[calc(100dvh-1rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-stone-200/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-white/7 lg:min-h-[calc(100dvh-1.5rem)]">
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
-          <div className="mx-auto w-full max-w-[1400px] space-y-6">
+          <div className="mx-auto w-full max-w-[1440px] space-y-6">
             <MobileNav
               active={active}
               visibleNav={visibleNav}
