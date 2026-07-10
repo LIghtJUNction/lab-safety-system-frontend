@@ -15,7 +15,7 @@ export function MobileNav({
   onNavigate: (label: string) => void;
 }) {
   return (
-    <nav className="sidebar-mobile -mx-5 mb-6 flex gap-2 overflow-x-auto px-5 pb-1 lg:hidden">
+    <nav className="sidebar-mobile -mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5 lg:hidden">
       {visibleNav.map((item) => {
         const Icon = item.icon;
         const isActive = active === item.label;
@@ -26,13 +26,14 @@ export function MobileNav({
             key={item.label}
             onClick={() => onNavigate(item.label)}
             className={cn(
-              "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium transition-all duration-300",
+              "relative flex min-h-11 shrink-0 items-center gap-2 rounded-[0.95rem] px-4 py-2 text-xs font-medium transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97]",
               isActive
-                ? "active bg-stone-900 text-white shadow-md"
-                : "bg-white text-stone-600 ring-1 ring-stone-200 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700",
+                ? "active bg-stone-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] dark:bg-stone-100 dark:text-stone-900"
+                : "bg-white/80 text-stone-600 ring-1 ring-stone-200/80 dark:bg-stone-900/80 dark:text-stone-400 dark:ring-white/10",
             )}
           >
-            <Icon size={14} />
+            {isActive ? <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+            <Icon size={15} strokeWidth={1.55} />
             {displayLabel}
           </button>
         );

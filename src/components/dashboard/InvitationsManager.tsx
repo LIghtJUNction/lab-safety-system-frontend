@@ -151,7 +151,7 @@ export function InvitationsManager({
       )}
 
       {/* Creation form Card */}
-      <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800/80 dark:bg-stone-900/60 backdrop-blur">
+      <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800/80 dark:bg-stone-900/60">
         <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900 dark:text-white mb-6">
           <PlusCircle className="text-amber-500" size={20} />
           <span>{copy.createTitle}</span>
@@ -241,7 +241,7 @@ export function InvitationsManager({
 
       {/* Invitations Table Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="rounded-3xl border border-stone-200/80 bg-white dark:border-stone-800/80 dark:bg-stone-900/60 backdrop-blur lg:col-span-2">
+        <div className="rounded-3xl border border-stone-200/80 bg-white dark:border-stone-800/80 dark:bg-stone-900/60 lg:col-span-2">
           <div className="px-6 py-5 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center">
             <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900 dark:text-white">
               <Link2 className="text-amber-500" size={18} />
@@ -381,7 +381,7 @@ export function InvitationsManager({
         </div>
 
         {/* Invited Users Details Sidebar / Column */}
-        <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800/80 dark:bg-stone-900/60 backdrop-blur">
+        <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800/80 dark:bg-stone-900/60">
           {viewingInviteUsers ? (
             <div className="space-y-6">
               <div className="flex justify-between items-start">

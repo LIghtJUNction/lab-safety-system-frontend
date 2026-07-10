@@ -10,19 +10,20 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-white/90 p-5 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-stone-900/80",
+        "surface-bezel surface-interactive rounded-[1.55rem] p-1.5",
         isAbnormal
           ? sensor.status === "danger"
-            ? "animate-breathe-danger border-rose-200 dark:border-rose-500/40"
-            : "animate-breathe-warning border-amber-200 dark:border-amber-500/40"
-          : "border-stone-100 dark:border-stone-800",
+            ? "animate-breathe-danger border-rose-300/70 dark:border-rose-500/35"
+            : "animate-breathe-warning border-amber-300/70 dark:border-amber-500/35"
+          : "",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="surface-core rounded-[1.15rem] p-5">
+        <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-xl ring-1",
+              "flex h-10 w-10 items-center justify-center rounded-[0.9rem] ring-1",
               sensor.status === "danger"
                 ? "bg-rose-50 text-rose-600 ring-rose-100"
                 : sensor.status === "warning"
@@ -30,7 +31,7 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
                   : "bg-stone-100 text-stone-700 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700",
             )}
           >
-            <Icon size={18} strokeWidth={1.75} />
+            <Icon size={18} strokeWidth={1.55} />
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-stone-400">
@@ -40,17 +41,18 @@ export function MonitorCard({ sensor }: { sensor: SensorReading }) {
           </div>
         </div>
         <StatusDot status={sensor.status} />
-      </div>
+        </div>
 
-      <div className="mt-4">
-        <p className="font-mono text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-          {sensor.value}
-          {sensor.unit ? (
-            <span className="ml-1 text-base font-normal text-stone-400">
-              {sensor.unit}
-            </span>
-          ) : null}
-        </p>
+        <div className="mt-4">
+          <p className="font-mono text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+            {sensor.value}
+            {sensor.unit ? (
+              <span className="ml-1 text-base font-normal text-stone-400">
+                {sensor.unit}
+              </span>
+            ) : null}
+          </p>
+        </div>
       </div>
     </article>
   );

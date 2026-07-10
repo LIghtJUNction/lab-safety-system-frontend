@@ -71,11 +71,15 @@ export function TopBar({
   const failed = notice.includes("失败") || notice.toLowerCase().includes("failed");
 
   return (
-    <header className="topbar space-y-5">
+    <header className="topbar space-y-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-500 dark:text-stone-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.1)]" />
+            {isEn ? "Operational workspace" : "运行控制台"}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 lg:text-2xl">
+            <h1 className="text-2xl font-semibold tracking-[-0.035em] text-stone-950 dark:text-stone-50 lg:text-[2rem] lg:leading-none">
               {pageTitle}
             </h1>
             {selectedLabId ? (
@@ -111,14 +115,14 @@ export function TopBar({
           </p>
         </div>
 
-        <div className="user-menu flex flex-wrap items-center gap-2">
+        <div className="user-menu surface-bezel flex max-w-full flex-wrap items-center gap-1.5 rounded-[1.25rem] p-1.5">
           <LabSwitcher
             labs={labs}
             selectedLabId={selectedLabId}
             language={language}
             onChange={onLabChange}
           />
-          <div className="inline-flex max-w-full items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 shadow-sm dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
+          <div className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-[0.9rem] bg-white px-3 py-2 text-xs font-medium text-stone-700 ring-1 ring-stone-200/80 dark:bg-stone-800 dark:text-stone-300 dark:ring-white/8">
             <span className="truncate font-medium text-stone-800 dark:text-stone-200">
               {session.user.display_name}
             </span>
@@ -128,7 +132,7 @@ export function TopBar({
           <button
             type="button"
             onClick={onToggleTheme}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
+            className="surface-interactive inline-flex min-h-10 items-center gap-1.5 rounded-[0.9rem] bg-white px-3 py-2 text-xs font-medium text-stone-700 ring-1 ring-stone-200/80 dark:bg-stone-800 dark:text-stone-300 dark:ring-white/8"
           >
             {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
             {theme === "light" ? (isEn ? "Dark" : "暗色") : isEn ? "Light" : "亮色"}
@@ -136,7 +140,7 @@ export function TopBar({
           <button
             type="button"
             onClick={onBindPasskey}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300"
+            className="surface-interactive inline-flex min-h-10 items-center gap-1.5 rounded-[0.9rem] bg-white px-3 py-2 text-xs font-medium text-stone-700 ring-1 ring-stone-200/80 dark:bg-stone-800 dark:text-stone-300 dark:ring-white/8"
           >
             <Fingerprint size={15} />
             Passkey
@@ -144,7 +148,7 @@ export function TopBar({
           <button
             type="button"
             onClick={onLogout}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-stone-800 hover:shadow-md dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+            className="surface-interactive inline-flex min-h-10 items-center gap-1.5 rounded-[0.9rem] bg-stone-900 px-3 py-2 text-xs font-medium text-white dark:bg-stone-100 dark:text-stone-900"
           >
             <LogOut size={15} />
             {isEn ? "Sign out" : "退出"}
@@ -152,7 +156,7 @@ export function TopBar({
         </div>
       </div>
 
-      <label className="search relative block max-w-md">
+      <label className="search surface-bezel relative block max-w-xl rounded-[1.15rem] p-1">
         <Search
           size={17}
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
@@ -165,7 +169,7 @@ export function TopBar({
               ? "Search regulations, cases, equipment, hazards"
               : "搜索法规、案例、设备、隐患"
           }
-          className="w-full rounded-xl border border-stone-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-stone-800 shadow-sm outline-none backdrop-blur-md transition-all duration-200 placeholder:text-stone-400 focus:border-stone-400 focus:ring-2 focus:ring-stone-200 dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-100 dark:focus:border-stone-500 dark:focus:ring-stone-700/40"
+          className="surface-core min-h-11 w-full rounded-[0.9rem] py-2.5 pl-10 pr-4 text-sm text-stone-800 outline-none transition-[background-color,border-color,box-shadow] duration-300 placeholder:text-stone-400 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/12 dark:text-stone-100"
         />
       </label>
     </header>

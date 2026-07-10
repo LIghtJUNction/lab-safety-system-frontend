@@ -12,7 +12,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { api, AuthMethods, AuthSession, getApiBase, setApiBase, type LoginCarouselSettings } from "../../api";
 import {
   creationOptionsFromServer,
@@ -20,7 +20,6 @@ import {
   requestOptionsFromServer,
 } from "../../lib/auth";
 import { loginCopy, SESSION_KEY, SOURCE_REPO } from "../../lib/constants";
-import { btnGhost, linkMuted } from "../../lib/theme";
 import { Language, ThemeMode } from "../../lib/types";
 import { AsciiBurn } from "../ui/AsciiBurn";
 import { LoginCarousel } from "./LoginCarousel";
@@ -58,6 +57,17 @@ export function LoginScreen({
   // Mobile layout drawer controls
   const [showLoginMobile, setShowLoginMobile] = useState(false);
   const [startY, setStartY] = useState(0);
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    window.matchMedia("(max-width: 1023px)").matches,
+  );
+  const mobileLoginCtaRef = useRef<HTMLButtonElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+
+  const openMobileLogin = () => setShowLoginMobile(true);
+  const closeMobileLogin = () => {
+    setShowLoginMobile(false);
+    window.requestAnimationFrame(() => mobileLoginCtaRef.current?.focus());
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setStartY(e.touches[0].clientY);
@@ -66,9 +76,9 @@ export function LoginScreen({
   const handleTouchEnd = (e: React.TouchEvent) => {
     const deltaY = e.changedTouches[0].clientY - startY;
     if (deltaY < -40) {
-      setShowLoginMobile(true);
+      openMobileLogin();
     } else if (deltaY > 40) {
-      setShowLoginMobile(false);
+      closeMobileLogin();
     }
   };
 
@@ -77,6 +87,27 @@ export function LoginScreen({
   useEffect(() => {
     setNotice(text.notice);
   }, [text.notice]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const updateLayout = (event: MediaQueryListEvent) => setIsMobileLayout(event.matches);
+    setIsMobileLayout(media.matches);
+    media.addEventListener("change", updateLayout);
+    return () => media.removeEventListener("change", updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileLayout || !showLoginMobile) return;
+    const frame = window.requestAnimationFrame(() => usernameInputRef.current?.focus());
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMobileLogin();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMobileLayout, showLoginMobile]);
 
   // Fetch custom carousel from backend (works unauthenticated)
   useEffect(() => {
@@ -158,14 +189,14 @@ export function LoginScreen({
   );
 
   const toggleClass = isDark
-    ? "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur transition hover:bg-black/60 hover:text-white active:scale-[0.985]"
-    : "inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white/80 px-3 py-1.5 text-xs font-medium text-stone-700 backdrop-blur transition hover:bg-white hover:text-stone-900 active:scale-[0.985]";
+    ? "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-4 py-2 text-xs font-medium text-white/80 backdrop-blur-md transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-black/65 hover:text-white active:scale-[0.985]"
+    : "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-stone-300/80 bg-white/85 px-4 py-2 text-xs font-medium text-stone-700 backdrop-blur-md transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white hover:text-stone-900 active:scale-[0.985]";
 
   return (
     <main
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`relative min-h-screen overflow-hidden ${isDark ? 'bg-[#0a0908] text-white' : 'bg-stone-100 text-stone-900'}`}
+      className={`relative min-h-[100dvh] overflow-hidden ${isDark ? 'bg-[#0a0908] text-white' : 'bg-[#f1eee7] text-stone-900'}`}
     >
       {/* The flame as the entire background — subtle, warm, doesn't affect reading */}
       {isDark && FlameBackground}
@@ -174,7 +205,7 @@ export function LoginScreen({
       <div className={`pointer-events-none absolute inset-0 z-0 ${isDark ? 'bg-[#0a0908]/75' : 'bg-stone-100/40'}`} />
 
       {/* Top-right functional toggles */}
-      <div className="absolute right-6 top-5 z-50 flex items-center gap-2">
+      <div className="absolute right-4 top-4 z-50 flex items-center gap-2 sm:right-6 sm:top-5">
         <button
           type="button"
           onClick={() => setTheme(isDark ? "light" : "dark")}
@@ -195,21 +226,26 @@ export function LoginScreen({
         </button>
       </div>
 
-      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-[1180px] grid-cols-1 gap-x-8 px-8 lg:grid-cols-12 lg:items-center lg:px-10">
+      <div className="relative z-10 mx-auto grid min-h-[100dvh] w-full max-w-[1240px] grid-cols-1 gap-x-10 px-5 sm:px-8 lg:grid-cols-12 lg:items-center lg:px-10">
         {/* LEFT: Clean, narrative hero with the rotating intro (人文故事感) */}
-        <div className={`flex flex-col justify-center py-12 lg:col-span-7 lg:py-16 ${isDark ? 'text-white' : 'text-stone-900'}`}>
+        <div className={`flex flex-col justify-center pb-10 pt-24 lg:col-span-7 lg:py-16 ${isDark ? 'text-white' : 'text-stone-900'}`}>
           {/* Single top logo - only once */}
-          <div className="mb-6 flex items-center gap-3">
-            <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ring-1 ${isDark ? 'bg-white/10 text-white ring-white/15' : 'bg-stone-800 text-white ring-stone-700'}`}>
-              <ShieldCheck size={18} />
+          <div className="mb-8 flex items-center gap-3">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-[1rem] ring-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${isDark ? 'bg-white/8 text-amber-300 ring-white/12' : 'bg-stone-900 text-amber-300 ring-stone-700'}`}>
+              <ShieldCheck size={19} strokeWidth={1.55} />
             </div>
-            <div className={`text-sm font-medium tracking-tight ${isDark ? 'text-white/80' : 'text-stone-700'}`}>
-              LabSafe <span className={isDark ? 'text-white/40' : 'text-stone-500'}>· {text.brandSub}</span>
+            <div>
+              <div className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${isDark ? 'text-amber-300/70' : 'text-amber-700'}`}>
+                Safety operations
+              </div>
+              <div className={`mt-0.5 text-sm font-medium tracking-tight ${isDark ? 'text-white/80' : 'text-stone-700'}`}>
+                LabSafe <span className={isDark ? 'text-white/40' : 'text-stone-500'}>· {text.brandSub}</span>
+              </div>
             </div>
           </div>
 
           {/* The carousel now renders cleanly as one elegant rotating story block */}
-          <div className="max-w-[520px]">
+          <div className="max-w-[570px]">
             <LoginCarousel
               language={language}
               isDark={isDark}
@@ -218,13 +254,14 @@ export function LoginScreen({
           </div>
 
           {/* Mobile Swipe/Click to Login Hint */}
-          <div className="mt-12 flex flex-col items-center justify-center lg:hidden">
+          <div className="mt-10 flex flex-col items-center justify-center lg:hidden">
             <button
+              ref={mobileLoginCtaRef}
               type="button"
-              onClick={() => setShowLoginMobile(true)}
-              className="flex flex-col items-center gap-1.5 text-xs font-semibold tracking-wider text-stone-400 dark:text-stone-500 hover:text-amber-500 transition-colors animate-bounce"
+              onClick={openMobileLogin}
+              className={`flex min-h-12 items-center gap-2 rounded-full px-5 py-3 text-xs font-semibold tracking-wide ring-1 transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${isDark ? 'bg-white/8 text-white/80 ring-white/12 hover:bg-white/12 hover:text-amber-300' : 'bg-white/75 text-stone-700 ring-stone-300/70 hover:bg-white hover:text-amber-700'}`}
             >
-              <ChevronUp size={20} />
+              <ChevronUp size={18} strokeWidth={1.55} />
               <span>{text.mobileLoginCta}</span>
             </button>
           </div>
@@ -235,26 +272,35 @@ export function LoginScreen({
           className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
             showLoginMobile ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
-          onClick={() => setShowLoginMobile(false)}
+          onClick={closeMobileLogin}
         />
 
         {/* RIGHT: The login form card — keep it refined */}
         <div className={`
           flex items-center justify-center py-8 lg:col-span-5 lg:justify-end lg:py-0
           max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-50 max-lg:w-full max-lg:max-w-none max-lg:p-0
-          max-lg:transition-transform max-lg:duration-300 max-lg:ease-out
+          max-lg:transition-transform max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)]
           ${showLoginMobile ? 'max-lg:translate-y-0' : 'max-lg:translate-y-full'}
-        `}>
+        `}
+          ref={(node) => {
+            if (node) node.inert = isMobileLayout && !showLoginMobile;
+          }}
+          role={isMobileLayout && showLoginMobile ? "dialog" : undefined}
+          aria-modal={isMobileLayout && showLoginMobile ? true : undefined}
+          aria-label={isMobileLayout && showLoginMobile ? text.title : undefined}
+          aria-hidden={isMobileLayout && !showLoginMobile ? true : undefined}
+        >
           {/* White "sunken window" card with strong 3D / inset depth */}
-          <div className="w-full max-w-[360px] rounded-3xl border border-[#e5e1d8] bg-[#f9f6f0] p-8 shadow-[0_2px_4px_rgba(0,0,0,0.03),0_12px_35px_-8px_rgba(0,0,0,0.14),0_30px_80px_-15px_rgba(0,0,0,0.12),inset_0_1.5px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(0,0,0,0.07),inset_1px_0_0_rgba(255,255,255,0.6)]
-            max-lg:rounded-t-[32px] max-lg:rounded-b-none max-lg:max-w-full max-lg:border-x-0 max-lg:border-b-0 max-lg:pb-12 max-lg:shadow-[0_-8px_30px_rgba(0,0,0,0.15)]
+          <div className="w-full max-w-[390px] rounded-[2rem] border border-[#d8d2c8] bg-[#e9e4db] p-1.5 shadow-[0_26px_80px_-34px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.85)]
+            max-lg:max-w-full max-lg:rounded-b-none max-lg:rounded-t-[2rem] max-lg:border-x-0 max-lg:border-b-0 max-lg:p-1.5 max-lg:pb-0 max-lg:shadow-[0_-20px_70px_-30px_rgba(0,0,0,0.5)]
           ">
+            <div className="rounded-[calc(2rem-0.375rem)] border border-white/80 bg-[#fbf8f2] p-7 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,1),0_1px_2px_rgba(41,37,36,0.06)] max-lg:rounded-b-none max-lg:pb-12 sm:p-8">
             {/* Close handle/indicator on mobile */}
             <div className="flex justify-center pb-4 -mt-2 lg:hidden">
               <button
                 type="button"
-                onClick={() => setShowLoginMobile(false)}
-                className="flex flex-col items-center gap-1 text-stone-400 hover:text-stone-600 transition-colors"
+                onClick={closeMobileLogin}
+                className="flex min-h-11 flex-col items-center justify-center gap-1 text-stone-400 transition-colors hover:text-stone-600"
                 aria-label={text.closeLoginPanel}
               >
                 <div className="w-12 h-1.5 rounded-full bg-stone-300 dark:bg-stone-600 mb-1" />
@@ -264,8 +310,8 @@ export function LoginScreen({
 
             <div className="mb-6">
               <div className="flex items-center gap-2 text-amber-500">
-                <KeyRound size={17} />
-                <span className="text-[10px] font-medium tracking-[2px] uppercase text-stone-500">Secure Access</span>
+                <KeyRound size={17} strokeWidth={1.55} />
+                <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-stone-500">Secure Access</span>
               </div>
               <h1 className="mt-2 text-[28px] font-semibold tracking-tight text-stone-900">{text.title}</h1>
               <p className="mt-2 text-sm text-stone-600">{notice}</p>
@@ -276,14 +322,14 @@ export function LoginScreen({
               <button
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex w-full items-center justify-between text-xs text-stone-500 hover:text-stone-700"
+                className="flex min-h-11 w-full items-center justify-between rounded-xl px-2 text-xs text-stone-500 transition-colors duration-300 hover:bg-stone-100/70 hover:text-stone-700"
               >
                 <span>{text.advancedConfig}</span>
                 <span>{showAdvanced ? `${text.collapse} ▲` : `${text.expand} ▼`}</span>
               </button>
 
               {showAdvanced && (
-                <div className="mt-2 rounded-2xl border border-stone-200 bg-stone-50 p-3 text-xs">
+                <div className="mt-2 rounded-[1rem] border border-stone-200/80 bg-stone-100/60 p-3 text-xs shadow-[inset_0_1px_2px_rgba(41,37,36,0.04)]">
                   <div className="space-y-2">
                     <div>
                       <label className="block text-[10px] text-stone-500 mb-0.5">{text.backendAddress}</label>
@@ -294,7 +340,7 @@ export function LoginScreen({
                           setApiBase(e.target.value);
                         }}
                         placeholder={text.backendAddressPlaceholder}
-                        className="w-full rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-amber-500"
+                        className="min-h-10 w-full rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs outline-none transition-[border-color,box-shadow] duration-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10"
                       />
                     </div>
                   </div>
@@ -331,11 +377,12 @@ export function LoginScreen({
                 <div className="relative">
                   <User className="absolute left-4 top-3.5 h-4 w-4 text-stone-400" />
                   <input
+                    ref={usernameInputRef}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
                     placeholder="admin"
-                    className="w-full rounded-2xl border border-stone-200 bg-white pl-10 pr-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-amber-500 focus:ring-1 focus:ring-amber-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]"
+                    className="min-h-12 w-full rounded-[1rem] border border-stone-200 bg-white py-3 pl-10 pr-4 text-sm text-stone-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/12 placeholder:text-stone-400"
                     required
                   />
                 </div>
@@ -352,7 +399,7 @@ export function LoginScreen({
                       type="password"
                       autoComplete="current-password"
                       placeholder="••••••••"
-                      className="w-full rounded-2xl border border-stone-200 bg-white pl-10 pr-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-amber-500 focus:ring-1 focus:ring-amber-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]"
+                      className="min-h-12 w-full rounded-[1rem] border border-stone-200 bg-white py-3 pl-10 pr-4 text-sm text-stone-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/12 placeholder:text-stone-400"
                       required
                     />
                   </div>
@@ -360,7 +407,7 @@ export function LoginScreen({
                     type="button"
                     onClick={passkeyLogin}
                     disabled={submitting || !username.trim()}
-                    className="shrink-0 rounded-2xl border border-stone-200 bg-white px-3.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50 hover:text-stone-900 disabled:opacity-40 flex items-center gap-1.5"
+                    className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-[1rem] border border-stone-200 bg-white px-3.5 text-xs font-medium text-stone-600 transition-[transform,background-color,color] duration-300 hover:bg-stone-50 hover:text-stone-900 active:scale-[0.98] disabled:opacity-40"
                   >
                     <Fingerprint size={14} />
                     {text.passkey}
@@ -371,9 +418,11 @@ export function LoginScreen({
               <button
                 type="submit"
                 disabled={submitting || !authMethods.password}
-                className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 text-[15px] font-medium text-white transition active:scale-[0.985] hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="group mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-stone-900 px-5 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[transform,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-stone-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <LogIn size={17} />
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5">
+                  <LogIn size={15} strokeWidth={1.55} />
+                </span>
                 {submitting ? text.loggingIn : text.passwordLogin}
               </button>
             </form>
@@ -389,7 +438,7 @@ export function LoginScreen({
                 type="button"
                 disabled={!authMethods.sso || !authMethods.sso_login_url}
                 onClick={() => authMethods.sso_login_url && window.location.assign(authMethods.sso_login_url)}
-                className="rounded-2xl border border-stone-200 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-50 hover:text-stone-700 disabled:opacity-40"
+                className="min-h-11 rounded-[0.95rem] border border-stone-200 py-2 text-xs font-medium text-stone-500 transition-[transform,background-color,color] duration-300 hover:bg-stone-50 hover:text-stone-700 active:scale-[0.98] disabled:opacity-40"
               >
                 {authMethods.sso ? text.sso : text.ssoDisabled}
               </button>
@@ -397,7 +446,7 @@ export function LoginScreen({
                 type="button"
                 disabled={!authMethods.oauth || !authMethods.oauth_login_url}
                 onClick={() => authMethods.oauth_login_url && window.location.assign(authMethods.oauth_login_url)}
-                className="rounded-2xl border border-stone-200 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-50 hover:text-stone-700 disabled:opacity-40"
+                className="min-h-11 rounded-[0.95rem] border border-stone-200 py-2 text-xs font-medium text-stone-500 transition-[transform,background-color,color] duration-300 hover:bg-stone-50 hover:text-stone-700 active:scale-[0.98] disabled:opacity-40"
               >
                 {authMethods.oauth ? text.oauth : text.oauthDisabled}
               </button>
@@ -417,6 +466,7 @@ export function LoginScreen({
                 <Github size={12} />
                 {text.source}
               </a>
+            </div>
             </div>
           </div>
         </div>
