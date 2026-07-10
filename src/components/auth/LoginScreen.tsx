@@ -57,9 +57,7 @@ export function LoginScreen({
   // Mobile layout drawer controls
   const [showLoginMobile, setShowLoginMobile] = useState(false);
   const [startY, setStartY] = useState(0);
-  const [isMobileLayout, setIsMobileLayout] = useState(() =>
-    window.matchMedia("(max-width: 1023px)").matches,
-  );
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
   const mobileLoginCtaRef = useRef<HTMLButtonElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
