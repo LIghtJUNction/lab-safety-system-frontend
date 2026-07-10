@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  type AuthMethods,
   type AuthSession,
   type DashboardStats,
   type HazardAnalytics,
@@ -30,6 +31,7 @@ import { LoginCarouselEditor } from "./LoginCarouselEditor";
 import { LabMembersManager } from "./LabMembersManager";
 import { OverviewDashboard } from "./OverviewDashboard";
 import { TrainingHighlight } from "../workspace/TrainingHighlight";
+import { SystemSettingsPanel } from "./SystemSettingsPanel";
 
 type DashboardMainContentProps = {
   showLabManagement: boolean;
@@ -98,6 +100,7 @@ type DashboardMainContentProps = {
   ) => Promise<void>;
   withAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
   exportAnalytics: () => void;
+  onAuthMethodsChange: (methods: AuthMethods) => void;
 };
 
 export function DashboardMainContent({
@@ -158,6 +161,7 @@ export function DashboardMainContent({
   submitAction,
   withAction,
   exportAnalytics,
+  onAuthMethodsChange,
 }: DashboardMainContentProps) {
   return (
     <>
@@ -478,18 +482,21 @@ export function DashboardMainContent({
       )}
 
       {showSystemConfig && isSystemAdmin ? (
-        <LoginCarouselEditor
-          loginCarousel={loginCarousel}
-          carouselSaving={carouselSaving}
-          language={language}
-          syncLanguages={syncLanguages}
-          resetToDefault={resetToDefault}
-          saveLoginCarousel={saveLoginCarousel}
-          cloneSlide={cloneSlide}
-          addCarouselSlide={addCarouselSlide}
-          removeCarouselSlide={removeCarouselSlide}
-          updateCarouselSlide={updateCarouselSlide}
-        />
+        <div className="space-y-6">
+          <SystemSettingsPanel language={language} onAuthMethodsChange={onAuthMethodsChange} />
+          <LoginCarouselEditor
+            loginCarousel={loginCarousel}
+            carouselSaving={carouselSaving}
+            language={language}
+            syncLanguages={syncLanguages}
+            resetToDefault={resetToDefault}
+            saveLoginCarousel={saveLoginCarousel}
+            cloneSlide={cloneSlide}
+            addCarouselSlide={addCarouselSlide}
+            removeCarouselSlide={removeCarouselSlide}
+            updateCarouselSlide={updateCarouselSlide}
+          />
+        </div>
       ) : null}
     </>
   );
