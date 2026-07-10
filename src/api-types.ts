@@ -94,6 +94,36 @@ export type AuthMethods = {
   oauth_login_url: string | null;
 };
 
+export type AuthSettings = {
+  sso_enabled: boolean;
+  sso_login_url: string | null;
+  oauth_enabled: boolean;
+  oauth_login_url: string | null;
+  federated_login_secret_configured: boolean;
+};
+
+export type AuthSettingsPatch = {
+  sso_enabled: boolean;
+  sso_login_url: string | null;
+  oauth_enabled: boolean;
+  oauth_login_url: string | null;
+  federated_login_secret?: string;
+  clear_federated_login_secret?: boolean;
+};
+
+export type DeploymentSettings = {
+  app_env: string;
+  token_ttl_seconds: number;
+  webauthn_rp_id: string;
+  webauthn_origin: string;
+  cors_allowed_origins: string[];
+  mcp_enabled: boolean;
+  callback_paths: {
+    sso: string;
+    oauth: string;
+  };
+};
+
 export type Invitation = {
   id: number;
   code: string;

@@ -12,6 +12,9 @@ import type {
   AuthUser,
   AuthSession,
   AuthMethods,
+  AuthSettings,
+  AuthSettingsPatch,
+  DeploymentSettings,
   Invitation,
   InvitationCreate,
   InvitationRegister,
@@ -54,6 +57,9 @@ export type {
   AuthUser,
   AuthSession,
   AuthMethods,
+  AuthSettings,
+  AuthSettingsPatch,
+  DeploymentSettings,
   Invitation,
   InvitationCreate,
   InvitationRegister,
@@ -166,6 +172,14 @@ export const api = {
     accessToken = token;
   },
   authMethods: () => request<AuthMethods>("/auth/methods"),
+  authSettings: () => request<AuthSettings>("/settings/auth"),
+  updateAuthSettings: (payload: AuthSettingsPatch) =>
+    request<AuthSettings>("/settings/auth", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deploymentSettings: () =>
+    request<DeploymentSettings>("/settings/deployment"),
   passwordLogin: (username: string, password: string) =>
     request<AuthSession>("/auth/password-login", {
       method: "POST",

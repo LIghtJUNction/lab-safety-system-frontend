@@ -399,9 +399,9 @@ export function QuickActionsPanel({
             return user;
           }}
         >
-          <FormInput name="username" placeholder={isEn ? "Username" : "用户名"} />
-          <FormInput name="display_name" placeholder={isEn ? "Display name" : "显示名"} />
-          <FormInput name="email" type="email" placeholder={isEn ? "Email" : "邮箱"} />
+          <FormInput name="username" autoComplete="username" required placeholder={isEn ? "Username" : "用户名"} />
+          <FormInput name="display_name" autoComplete="name" required placeholder={isEn ? "Display name" : "显示名"} />
+          <FormInput name="email" type="email" autoComplete="email" required placeholder={isEn ? "Email" : "邮箱"} />
           <FormSelect name="lab_role" defaultValue="lab_member">
             <option value="lab_admin">{isEn ? "Lab admin (lab required)" : "实验室管理员（绑定实验室）"}</option>
             <option value="lab_member">{isEn ? "Lab member (lab required)" : "实验室成员（绑定实验室）"}</option>
@@ -430,7 +430,7 @@ export function QuickActionsPanel({
               OAuth{authMethods.oauth ? "" : isEn ? " (disabled)" : "（未启用）"}
             </option>
           </FormSelect>
-          <FormInput name="department" placeholder={isEn ? "Department / lab" : "部门/实验室"} />
+          <FormInput name="department" autoComplete="organization" placeholder={isEn ? "Department / lab" : "部门/实验室"} />
           <FormInput
             name="password"
             type="password"

@@ -461,6 +461,7 @@ const dashboardMainProps = {
   labRows, showLoginBanner, setShowLoginBanner, loginCarousel, carouselSaving, syncLanguages,
   resetToDefault, saveLoginCarousel, cloneSlide, addCarouselSlide, removeCarouselSlide,
   updateCarouselSlide, setNotice, setActive, submitAction, withAction, exportAnalytics,
+  onAuthMethodsChange: setAuthMethods,
 };
 const quickActionsProps = {
   isAdmin, showRegulations, showIncidents, showHazards, showTrainings, showEquipment,

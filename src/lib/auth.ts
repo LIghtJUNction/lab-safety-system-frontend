@@ -1,6 +1,44 @@
 import { api, AuthSession } from "../api";
 import { SESSION_KEY } from "./constants";
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isAuthSession(value: unknown): value is AuthSession {
+  if (!value || typeof value !== "object") return false;
+  const session = value as Record<string, unknown>;
+  if (!isNonEmptyString(session.access_token)) return false;
+  if (!isNonEmptyString(session.token_type)) return false;
+  if (
+    typeof session.expires_in !== "number" ||
+    !Number.isFinite(session.expires_in) ||
+    session.expires_in <= 0
+  ) {
+    return false;
+  }
+  if (!session.user || typeof session.user !== "object") return false;
+  const user = session.user as Record<string, unknown>;
+  return (
+    typeof user.id === "number" &&
+    Number.isFinite(user.id) &&
+    isNonEmptyString(user.username) &&
+    isNonEmptyString(user.display_name) &&
+    isNonEmptyString(user.email) &&
+    isNonEmptyString(user.role) &&
+    isNonEmptyString(user.auth_provider)
+  );
+}
+
+function clearInvalidSession() {
+  try {
+    window.localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Storage may be unavailable; clearing the in-memory token still returns to login.
+  }
+  api.setAccessToken(null);
+}
+
 export function validateStrongPassword(password: string) {
   if (password.length < 12) return false;
   return (
@@ -131,7 +169,7 @@ export function requestOptionsFromServer(
   };
 }
 
-function readFederatedSession() {
+function readFederatedSession(): AuthSession | null {
   const marker = "#session=";
   if (!window.location.hash.startsWith(marker)) return null;
   try {
@@ -143,16 +181,22 @@ function readFederatedSession() {
     const bytes = Uint8Array.from(window.atob(padded), (char) =>
       char.charCodeAt(0),
     );
-    const session = JSON.parse(new TextDecoder().decode(bytes)) as AuthSession;
+    const session: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (!isAuthSession(session)) {
+      clearInvalidSession();
+      return null;
+    }
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    return session;
+  } catch {
+    clearInvalidSession();
+    return null;
+  } finally {
     window.history.replaceState(
       null,
       "",
       window.location.pathname + window.location.search,
     );
-    return session;
-  } catch {
-    return null;
   }
 }
 
@@ -164,11 +208,19 @@ export function readSession() {
       return federated;
     }
     const raw = window.localStorage.getItem(SESSION_KEY);
-    const session = raw ? (JSON.parse(raw) as AuthSession) : null;
-    api.setAccessToken(session?.access_token ?? null);
+    if (!raw) {
+      api.setAccessToken(null);
+      return null;
+    }
+    const session: unknown = JSON.parse(raw);
+    if (!isAuthSession(session)) {
+      clearInvalidSession();
+      return null;
+    }
+    api.setAccessToken(session.access_token);
     return session;
   } catch {
-    api.setAccessToken(null);
+    clearInvalidSession();
     return null;
   }
 }
