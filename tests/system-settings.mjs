@@ -30,6 +30,7 @@ let authMethods = {
   oauth_login_url: null,
 };
 let patchPayload = null;
+const patchPayloads = [];
 let authMethodsRequests = 0;
 
 const browser = await chromium.launch({ headless: true });
@@ -57,19 +58,24 @@ await page.route("**/api/v1/**", async (route) => {
   if (path === "/settings/auth" && method === "GET") body = authSettings;
   else if (path === "/settings/auth" && method === "PATCH") {
     patchPayload = request.postDataJSON();
+    patchPayloads.push(patchPayload);
+    const secretConfigured = patchPayload.clear_federated_login_secret
+      ? false
+      : authSettings.federated_login_secret_configured ||
+        Boolean(patchPayload.federated_login_secret);
     authSettings = {
       sso_enabled: patchPayload.sso_enabled,
       sso_login_url: patchPayload.sso_login_url,
       oauth_enabled: patchPayload.oauth_enabled,
       oauth_login_url: patchPayload.oauth_login_url,
-      federated_login_secret_configured: true,
+      federated_login_secret_configured: secretConfigured,
     };
     authMethods = {
       password: true,
       sso: authSettings.sso_enabled,
       oauth: authSettings.oauth_enabled,
-      sso_login_url: authSettings.sso_login_url,
-      oauth_login_url: authSettings.oauth_login_url,
+      sso_login_url: authSettings.sso_enabled ? authSettings.sso_login_url : null,
+      oauth_login_url: authSettings.oauth_enabled ? authSettings.oauth_login_url : null,
     };
     body = authSettings;
   } else if (path === "/settings/deployment") {
@@ -120,6 +126,11 @@ try {
   await expect(page.getByText("labs.example.com", { exact: true })).toBeVisible();
   await expect(page.getByTestId("federated-login-secret")).toHaveValue("");
 
+  await page.getByTestId("federated-login-secret").fill(" short ");
+  await page.getByTestId("save-auth-settings").click();
+  await expect(page.getByRole("status")).toContainText("联邦登录密钥至少需要 32 个字符");
+  expect(patchPayload).toBeNull();
+
   await page.getByTestId("sso-enabled").check();
   await page.getByTestId("sso-login-url").fill("https://idp.example.com/sso/login");
   await page.getByTestId("federated-login-secret").fill("playwright-federated-secret-32-characters");
@@ -128,7 +139,7 @@ try {
   await expect(page.getByTestId("federated-login-secret")).toHaveValue("");
   await expect(page.getByTestId("secret-status")).toContainText("密钥已配置，系统不会回显");
 
-  expect(patchPayload).toEqual({
+  expect(patchPayloads[0]).toEqual({
     sso_enabled: true,
     sso_login_url: "https://idp.example.com/sso/login",
     oauth_enabled: false,
@@ -136,7 +147,55 @@ try {
     clear_federated_login_secret: false,
     federated_login_secret: "playwright-federated-secret-32-characters",
   });
-  expect(authMethodsRequests).toBeGreaterThanOrEqual(2);
+
+  await page.getByTestId("oauth-enabled").check();
+  await page.getByTestId("oauth-login-url").fill("https://idp.example.com/oauth/authorize");
+  await page.getByTestId("save-auth-settings").click();
+  await expect(page.getByRole("status")).toContainText("认证设置已保存");
+  expect(patchPayloads[1]).toEqual({
+    sso_enabled: true,
+    sso_login_url: "https://idp.example.com/sso/login",
+    oauth_enabled: true,
+    oauth_login_url: "https://idp.example.com/oauth/authorize",
+    clear_federated_login_secret: false,
+  });
+  expect(authMethods).toEqual({
+    password: true,
+    sso: true,
+    oauth: true,
+    sso_login_url: "https://idp.example.com/sso/login",
+    oauth_login_url: "https://idp.example.com/oauth/authorize",
+  });
+  expect(authMethodsRequests).toBeGreaterThanOrEqual(3);
+
+  await page.getByTestId("sso-enabled").uncheck();
+  await page.getByTestId("oauth-enabled").uncheck();
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("确认清除已保存的联邦登录密钥");
+    await dialog.accept();
+  });
+  await page.getByRole("button", { name: "清除已保存密钥" }).click();
+  await expect(page.getByTestId("secret-status")).toContainText("保存时将清除密钥");
+  await page.getByTestId("save-auth-settings").click();
+  await expect(page.getByRole("status")).toContainText("认证设置已保存");
+  expect(patchPayloads[2]).toEqual({
+    sso_enabled: false,
+    sso_login_url: "https://idp.example.com/sso/login",
+    oauth_enabled: false,
+    oauth_login_url: "https://idp.example.com/oauth/authorize",
+    clear_federated_login_secret: true,
+  });
+  expect(Object.hasOwn(patchPayloads[2], "federated_login_secret")).toBe(false);
+  expect(authSettings.federated_login_secret_configured).toBe(false);
+  expect(authMethods).toEqual({
+    password: true,
+    sso: false,
+    oauth: false,
+    sso_login_url: null,
+    oauth_login_url: null,
+  });
+  await expect(page.getByTestId("secret-status")).toContainText("尚未配置密钥");
+  expect(authMethodsRequests).toBeGreaterThanOrEqual(4);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
   expect(consoleWarnings).toEqual([]);

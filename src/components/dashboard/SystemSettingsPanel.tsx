@@ -66,6 +66,15 @@ export function SystemSettingsPanel({
 
   const save = async () => {
     if (!auth) return;
+    const trimmedSecret = secret.trim();
+    if (trimmedSecret && trimmedSecret.length < 32) {
+      setMessage(
+        isEn
+          ? "Federated login secret must be at least 32 characters."
+          : "联邦登录密钥至少需要 32 个字符。",
+      );
+      return;
+    }
     setSaving(true);
     setMessage("");
     const payload: AuthSettingsPatch = {
@@ -75,7 +84,7 @@ export function SystemSettingsPanel({
       oauth_login_url: auth.oauth_login_url?.trim() || null,
       clear_federated_login_secret: clearSecret,
     };
-    if (secret.trim()) payload.federated_login_secret = secret.trim();
+    if (trimmedSecret) payload.federated_login_secret = trimmedSecret;
     try {
       const updated = await api.updateAuthSettings(payload);
       const methods = await api.authMethods();
