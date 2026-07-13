@@ -22,12 +22,13 @@ export function ActionForm({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget;
     setBusy(true);
     setMessage(null);
     try {
       const language = currentLanguage();
-      await onSubmit(new FormData(event.currentTarget));
-      event.currentTarget.reset();
+      await onSubmit(new FormData(form));
+      form.reset();
       setMessage({
         text: language === "en" ? "Created successfully." : "创建成功！",
         tone: "ok",

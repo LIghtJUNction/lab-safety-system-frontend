@@ -121,6 +121,7 @@ async function fillFormByTitle(page, title, values) {
     else await field.fill(String(value));
   }
   await form.getByRole("button", { name: /^提交$/ }).click();
+  return form;
 }
 
 async function chooseFirstOption(page, title, name) {
@@ -285,7 +286,7 @@ async function verifyBusinessFlows(page, records) {
   const { lab, user, training, equipment } = records;
   await page.goto(`${baseUrl}/labs/${lab.id}/regulations`, { waitUntil: "domcontentloaded" });
   await waitForSignedInShell(page);
-  await fillFormByTitle(page, "创建法规", {
+  const regulationForm = await fillFormByTitle(page, "创建法规", {
     title: `E2E 法规 ${suffix}`,
     regulation_type: "regulation",
     issuing_authority: "自动化安全办公室",
@@ -293,6 +294,7 @@ async function verifyBusinessFlows(page, records) {
     summary: "自动化验证法规创建",
   });
   await waitForNotice(page, "创建法规成功");
+  await expect(regulationForm.getByText("创建成功！", { exact: true })).toBeVisible();
   await capture(page, "regulations");
 
   await page.goto(`${baseUrl}/labs/${lab.id}/incidents`, { waitUntil: "domcontentloaded" });
@@ -404,6 +406,8 @@ async function verifyInvitationAndHazards(page, records, imagePath) {
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
 const page = await context.newPage();
+const pageErrors = [];
+page.on("pageerror", (error) => pageErrors.push(error.message));
 
 try {
   await enableVirtualPasskey(context, page);
@@ -431,6 +435,8 @@ try {
   );
   await verifyBusinessFlows(page, records);
   await verifyInvitationAndHazards(page, records, imagePath);
+  expect(pageErrors.filter((message) => /null.*reset|reset.*null/i.test(message))).toEqual([]);
+  expect(pageErrors).toEqual([]);
   console.log("E2E smoke passed");
   await capture(page, "final-state");
   console.log(`Screenshots: ${screenshotDir}`);
