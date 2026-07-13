@@ -6,6 +6,8 @@ export type AppRoute = {
   labTab: string;
   isJoinRoute: boolean;
   inviteCode: string;
+  detailKind: "regulation" | "incident" | "hazard" | null;
+  detailId: number | null;
 };
 
 export function parseAppRoute(pathname: string): AppRoute {
@@ -15,10 +17,14 @@ export function parseAppRoute(pathname: string): AppRoute {
   }
   if (parts[0] === "labs" && parts[1]) {
     const labId = Number.parseInt(parts[1], 10);
+    const detailKind = detailKindForTab(parts[2]);
+    const detailId = parts[3] ? Number.parseInt(parts[3], 10) : Number.NaN;
     return baseRoute({
       isLabRoute: true,
       urlLabId: Number.isNaN(labId) ? null : labId,
       labTab: parts[2] || "overview",
+      detailKind: detailKind && !Number.isNaN(detailId) ? detailKind : null,
+      detailId: detailKind && !Number.isNaN(detailId) ? detailId : null,
     });
   }
   if (parts[0] === "join" && parts[1]) {
@@ -86,8 +92,23 @@ function baseRoute(overrides: Partial<AppRoute> = {}): AppRoute {
     labTab: "",
     isJoinRoute: false,
     inviteCode: "",
+    detailKind: null,
+    detailId: null,
     ...overrides,
   };
+}
+
+function detailKindForTab(tab: string | undefined): AppRoute["detailKind"] {
+  switch (tab) {
+    case "regulations":
+      return "regulation";
+    case "incidents":
+      return "incident";
+    case "hazards":
+      return "hazard";
+    default:
+      return null;
+  }
 }
 
 function systemLabel(tab: string) {

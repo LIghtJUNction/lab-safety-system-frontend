@@ -26,7 +26,9 @@ type DashboardRowsInput = {
   users: User[];
   labs: Lab[];
   hazards: SafetyHazard[];
+  selectedLabId: number | null;
   isAdmin: boolean;
+  canOperateLab: boolean;
   sessionUserId: number;
   withAction: (label: string, action: () => Promise<unknown>) => Promise<void>;
 };
@@ -41,17 +43,19 @@ export function useDashboardRows({
   users,
   labs,
   hazards,
+  selectedLabId,
   isAdmin,
+  canOperateLab,
   sessionUserId,
   withAction,
 }: DashboardRowsInput) {
   const regulationRows = useMemo(
-    () => tableRows.regulationRows(regulations),
-    [regulations],
+    () => tableRows.regulationRows(regulations, selectedLabId),
+    [regulations, selectedLabId],
   );
   const incidentRows = useMemo(
-    () => tableRows.incidentRows(incidents),
-    [incidents],
+    () => tableRows.incidentRows(incidents, selectedLabId),
+    [incidents, selectedLabId],
   );
   const trainingRows = useMemo(
     () => tableRows.trainingRows(trainings),
@@ -124,9 +128,15 @@ export function useDashboardRows({
             ? `责任人 #${item.responsible_user_id}`
             : "待认领",
         ],
-        actions: (
-          <>
-            {!item.responsible_user_id ? (
+        href: selectedLabId
+          ? `/labs/${selectedLabId}/hazards/${item.id}`
+          : undefined,
+        ariaLabel: item.title,
+        actions:
+          (canOperateLab && !item.responsible_user_id) ||
+          (isAdmin && item.status === "remediation_submitted") ? (
+            <>
+            {canOperateLab && !item.responsible_user_id ? (
               <button
                 type="button"
                 className={actionBtnClass}
@@ -154,10 +164,17 @@ export function useDashboardRows({
                 闭环
               </button>
             ) : null}
-          </>
-        ),
+            </>
+          ) : null,
       })),
-    [hazards, isAdmin, sessionUserId, withAction],
+    [
+      hazards,
+      isAdmin,
+      canOperateLab,
+      selectedLabId,
+      sessionUserId,
+      withAction,
+    ],
   );
 
   return {

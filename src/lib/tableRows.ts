@@ -1,22 +1,31 @@
 import type { Booking, Equipment, Incident, Regulation, Training } from "../api";
 import type { TableRow } from "./types";
 
-export function regulationRows(regulations: Regulation[]): TableRow[] {
-  return regulations.map((item) => [
-    item.title,
-    item.regulation_type,
-    item.issuing_authority,
-    item.effective_date ?? "-",
-  ]);
+export function regulationRows(
+  regulations: Regulation[],
+  labId: number | null,
+): TableRow[] {
+  return regulations.map((item) => ({
+    cells: [
+      item.title,
+      item.regulation_type,
+      item.issuing_authority,
+      item.effective_date ?? "-",
+    ],
+    href: labId ? `/labs/${labId}/regulations/${item.id}` : undefined,
+    ariaLabel: item.title,
+  }));
 }
 
-export function incidentRows(incidents: Incident[]): TableRow[] {
-  return incidents.map((item) => [
-    item.title,
-    item.lab_name,
-    item.severity,
-    item.occurred_on,
-  ]);
+export function incidentRows(
+  incidents: Incident[],
+  labId: number | null,
+): TableRow[] {
+  return incidents.map((item) => ({
+    cells: [item.title, item.lab_name, item.severity, item.occurred_on],
+    href: labId ? `/labs/${labId}/incidents/${item.id}` : undefined,
+    ariaLabel: item.title,
+  }));
 }
 
 export function trainingRows(trainings: Training[]): TableRow[] {

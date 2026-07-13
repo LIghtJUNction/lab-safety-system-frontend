@@ -1,4 +1,4 @@
-import { AlertTriangle, ClipboardList, FlaskConical, ShieldCheck, Wrench } from "lucide-react";
+import { AlertTriangle, FlaskConical, ShieldCheck, Wrench } from "lucide-react";
 import { api, type AuthMethods, type AuthSession, type Equipment, type Lab, type SafetyHazard, type Training } from "../../api";
 import { ActionForm } from "../ui/ActionForm";
 import { FormInput, FormSelect, UploadButton } from "../ui/FormField";
@@ -7,6 +7,7 @@ import { claimFirstHazard, remediateFirstHazard, sessionUserOrThrow, uploadHazar
 
 type QuickActionsPanelProps = {
   isAdmin: boolean;
+  canOperateLab: boolean;
   showRegulations: boolean;
   showIncidents: boolean;
   showHazards: boolean;
@@ -28,6 +29,7 @@ type QuickActionsPanelProps = {
 
 export function QuickActionsPanel({
   isAdmin,
+  canOperateLab,
   showRegulations,
   showIncidents,
   showHazards,
@@ -48,13 +50,13 @@ export function QuickActionsPanel({
 }: QuickActionsPanelProps) {
   const isEn = language === "en";
   const hasAnyAction =
-    showRegulations ||
-    showIncidents ||
-    showHazards ||
-    showTrainings ||
-    showEquipment ||
-    showRepairs ||
-    showUsers;
+    (isAdmin && showRegulations) ||
+    (isAdmin && showIncidents) ||
+    (canOperateLab && showHazards) ||
+    (canOperateLab && showTrainings) ||
+    (canOperateLab && showEquipment) ||
+    (canOperateLab && showRepairs) ||
+    (isAdmin && showUsers);
 
   if (!hasAnyAction) return null;
 
@@ -82,16 +84,21 @@ export function QuickActionsPanel({
         <ActionForm
           title={isEn ? "Create regulation" : "创建法规"}
           onSubmit={(form) =>
-            submitAction(isEn ? "Create regulation" : "创建法规", () =>
-              api.createRegulation({
+            submitAction(isEn ? "Create regulation" : "创建法规", async () => {
+              const selectedFile = form.get("file");
+              const fileUrl =
+                selectedFile instanceof File && selectedFile.size > 0
+                  ? (await api.uploadRegulation(selectedFile)).url
+                  : null;
+              return api.createRegulation({
                 title: value(form, "title"),
                 regulation_type: value(form, "regulation_type"),
                 issuing_authority: value(form, "issuing_authority"),
                 effective_date: optionalValue(form, "effective_date"),
                 summary: value(form, "summary"),
-                file_url: null,
-              }),
-            )
+                file_url: fileUrl,
+              });
+            })
           }
         >
           <FormInput name="title" placeholder={isEn ? "Regulation title" : "法规标题"} />
@@ -105,6 +112,12 @@ export function QuickActionsPanel({
           <FormInput name="issuing_authority" placeholder={isEn ? "Issuing authority" : "发布单位"} />
           <FormInput name="effective_date" type="date" />
           <FormInput name="summary" placeholder={isEn ? "Summary" : "摘要"} className="sm:col-span-2" />
+          <FormInput
+            name="file"
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md"
+            className="sm:col-span-2"
+          />
         </ActionForm>
       ) : null}
 
@@ -157,7 +170,7 @@ export function QuickActionsPanel({
         </ActionForm>
       ) : null}
 
-      {showHazards ? (
+      {canOperateLab && showHazards ? (
 <ActionForm
           title={isEn ? "Report hazard" : "上报隐患"}
           actionKey="hazard-report"
@@ -197,8 +210,12 @@ export function QuickActionsPanel({
           title={isEn ? "Create training" : "创建培训"}
           actionKey="training"
           onSubmit={(form) =>
-            submitAction(isEn ? "Create training" : "创建培训", () =>
-              api.createTraining({
+            submitAction(isEn ? "Create training" : "创建培训", () => {
+              if (!selectedLabId) {
+                throw new Error(isEn ? "Select a laboratory" : "请选择实验室");
+              }
+              return api.createTraining({
+                lab_id: selectedLabId,
                 title: value(form, "title"),
                 target_role: value(form, "target_role"),
                 status: value(form, "status"),
@@ -207,8 +224,8 @@ export function QuickActionsPanel({
                   form,
                   "exam_required_score",
                 ),
-              }),
-            )
+              });
+            })
           }
         >
           <FormInput name="title" placeholder={isEn ? "Training title" : "培训标题"} />
@@ -274,7 +291,7 @@ export function QuickActionsPanel({
         </ActionForm>
       ) : null}
 
-      {showEquipment ? (
+      {canOperateLab && showEquipment ? (
 <ActionForm
           title={isEn ? "Book equipment" : "预约设备"}
           onSubmit={(form) =>
@@ -308,7 +325,7 @@ export function QuickActionsPanel({
         </ActionForm>
       ) : null}
 
-      {showRepairs ? (
+      {canOperateLab && showRepairs ? (
 <ActionForm
           title={isEn ? "Submit repair ticket" : "提交报修"}
           onSubmit={(form) =>
@@ -339,7 +356,7 @@ export function QuickActionsPanel({
         </ActionForm>
       ) : null}
 
-      {showTrainings ? (
+      {canOperateLab && showTrainings ? (
         <ActionForm
           title={isEn ? "Record exam result" : "登记考核"}
           actionKey="exam-result"
@@ -373,31 +390,33 @@ export function QuickActionsPanel({
       {isAdmin && showUsers ? (
         <ActionForm
           title={isEn ? "Create user" : "创建用户"}
-          onSubmit={async (form) => {
-            const labRole = value(form, "lab_role");
-            const labId = optionalValue(form, "lab_id");
-            const authProvider = value(form, "auth_provider");
-            if ((labRole === "lab_admin" || labRole === "lab_member") && !labId) {
-              throw new Error(isEn ? "Lab admins and lab members must select a lab." : "实验室管理员和实验室成员必须选择要绑定的实验室");
-            }
-            if (authProvider === "password" && !authMethods.password) {
-              throw new Error(isEn ? "Password login is disabled, so password users cannot be created." : "当前系统未启用账号密码登录，不能创建密码登录用户");
-            }
-            if (authProvider === "sso" && !authMethods.sso) {
-              throw new Error(isEn ? "SSO login is disabled, so SSO users cannot be created." : "当前系统未启用 SSO 登录，不能创建 SSO 用户");
-            }
-            if (authProvider === "oauth" && !authMethods.oauth) {
-              throw new Error(isEn ? "OAuth login is disabled, so OAuth users cannot be created." : "当前系统未启用 OAuth 登录，不能创建 OAuth 用户");
-            }
-            const user = await api.createUser(userCreateValue(form));
-            if (labId) {
-              await api.assignLabUser(Number(labId), {
-                user_id: user.id,
-                lab_role: labRole as "lab_admin" | "lab_member" | "visitor",
-              });
-            }
-            return user;
-          }}
+          onSubmit={(form) =>
+            submitAction(isEn ? "Create user" : "创建用户", async () => {
+              const labRole = value(form, "lab_role");
+              const labId = optionalValue(form, "lab_id");
+              const authProvider = value(form, "auth_provider");
+              if ((labRole === "lab_admin" || labRole === "lab_member") && !labId) {
+                throw new Error(isEn ? "Lab admins and lab members must select a lab." : "实验室管理员和实验室成员必须选择要绑定的实验室");
+              }
+              if (authProvider === "password" && !authMethods.password) {
+                throw new Error(isEn ? "Password login is disabled, so password users cannot be created." : "当前系统未启用账号密码登录，不能创建密码登录用户");
+              }
+              if (authProvider === "sso" && !authMethods.sso) {
+                throw new Error(isEn ? "SSO login is disabled, so SSO users cannot be created." : "当前系统未启用 SSO 登录，不能创建 SSO 用户");
+              }
+              if (authProvider === "oauth" && !authMethods.oauth) {
+                throw new Error(isEn ? "OAuth login is disabled, so OAuth users cannot be created." : "当前系统未启用 OAuth 登录，不能创建 OAuth 用户");
+              }
+              const user = await api.createUser(userCreateValue(form));
+              if (labId) {
+                await api.assignLabUser(Number(labId), {
+                  user_id: user.id,
+                  lab_role: labRole as "lab_admin" | "lab_member" | "visitor",
+                });
+              }
+              return user;
+            })
+          }
         >
           <FormInput name="username" autoComplete="username" required placeholder={isEn ? "Username" : "用户名"} />
           <FormInput name="display_name" autoComplete="name" required placeholder={isEn ? "Display name" : "显示名"} />
@@ -440,7 +459,7 @@ export function QuickActionsPanel({
         </ActionForm>
       ) : null}
 
-      {showHazards ? (
+      {canOperateLab && showHazards ? (
         <button
           type="button"
           onClick={() =>
@@ -455,18 +474,6 @@ export function QuickActionsPanel({
         </button>
       ) : null}
 
-      {isAdmin && showRegulations ? (
-        <UploadButton
-          label={isEn ? "Upload regulation file" : "上传法规文件"}
-          icon={<ClipboardList size={16} />}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md"
-          onFile={(file) =>
-            void withAction(isEn ? "Upload regulation file" : "上传法规文件", () => api.uploadRegulation(file)).catch(
-              () => undefined,
-            )
-          }
-        />
-      ) : null}
       {isAdmin && showIncidents ? (
         <UploadButton
           label={isEn ? "Upload case attachment" : "上传案例附件"}
@@ -479,7 +486,7 @@ export function QuickActionsPanel({
           }
         />
       ) : null}
-      {showHazards ? (
+      {canOperateLab && showHazards ? (
         <UploadButton
           label={isEn ? "Upload issue photo" : "上传问题照片"}
           icon={<ShieldCheck size={16} />}
@@ -491,7 +498,7 @@ export function QuickActionsPanel({
           }
         />
       ) : null}
-      {showHazards ? (
+      {canOperateLab && showHazards ? (
         <UploadButton
           label={isEn ? "Upload remediation photo" : "上传整改照片"}
           icon={<Wrench size={16} />}

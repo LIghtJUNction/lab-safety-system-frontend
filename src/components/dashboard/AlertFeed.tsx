@@ -14,11 +14,15 @@ export type AlertItem = {
 
 export function AlertFeed({
   alerts,
+  canClaimHazards,
+  canCloseHazards,
   onAssign,
   onConfirm,
   language,
 }: {
   alerts: AlertItem[];
+  canClaimHazards: boolean;
+  canCloseHazards: boolean;
   onAssign: (hazard: SafetyHazard) => void;
   onConfirm: (hazard: SafetyHazard) => void;
   language: Language;
@@ -59,9 +63,9 @@ export function AlertFeed({
                   <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
                     {alert.lab} · {alert.time}
                   </p>
-                  {alert.hazard ? (
+                  {alert.hazard && (canClaimHazards || canCloseHazards) ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {!alert.hazard.responsible_user_id ? (
+                      {canClaimHazards && !alert.hazard.responsible_user_id ? (
                         <button
                           type="button"
                           onClick={() => onAssign(alert.hazard!)}
@@ -71,14 +75,16 @@ export function AlertFeed({
                           {isEn ? "Assign" : "指派处理"}
                         </button>
                       ) : null}
-                      <button
-                        type="button"
-                        onClick={() => onConfirm(alert.hazard!)}
-                        className="surface-interactive inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-stone-700 ring-1 ring-stone-200 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700"
-                      >
-                        <CheckCircle2 size={13} strokeWidth={1.55} />
-                        {isEn ? "Confirm safe" : "确认安全"}
-                      </button>
+                      {canCloseHazards && alert.hazard.status === "remediation_submitted" ? (
+                        <button
+                          type="button"
+                          onClick={() => onConfirm(alert.hazard!)}
+                          className="surface-interactive inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-stone-700 ring-1 ring-stone-200 dark:bg-stone-900 dark:text-stone-300 dark:ring-stone-700"
+                        >
+                          <CheckCircle2 size={13} strokeWidth={1.55} />
+                          {isEn ? "Confirm safe" : "确认安全"}
+                        </button>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

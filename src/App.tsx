@@ -24,6 +24,7 @@ import { LoginScreen } from "./components/auth/LoginScreen";
 import { InvitationRegisterScreen } from "./components/auth/InvitationRegisterScreen";
 import { DashboardMainContent } from "./components/dashboard/DashboardMainContent";
 import { QuickActionsPanel } from "./components/dashboard/QuickActionsPanel";
+import { RecordDetail } from "./components/dashboard/RecordDetail";
 import { MobileNav } from "./components/layout/MobileNav";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TopBar } from "./components/layout/TopBar";
@@ -130,14 +131,21 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
   })();
 
   const isAdmin = isSystemAdmin || currentLabRole === "lab_admin" || session?.user.role === "admin" || session?.user.role === "super_admin";
+  const canOperateLab =
+    isSystemAdmin || currentLabRole === "lab_admin" || currentLabRole === "lab_member";
 
 
   const sensors = useTelemetry(hazards, repairs);
 
 
-  async function refresh(search = query, options?: { silent?: boolean }) {
+  async function refresh(
+    search = query,
+    options?: { silent?: boolean; labId?: number | null },
+  ) {
     setLoading(true);
     try {
+      const effectiveLabId =
+        options && "labId" in options ? options.labId : selectedLabId;
       const canManageUsers = isSystemAdmin || currentLabRole === "lab_admin";
       const [
         nextStats,
@@ -154,19 +162,19 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
         nextHazards,
         nextLabMembers,
       ] = await Promise.all([
-        api.dashboard(selectedLabId || undefined),
-        api.incidentAnalytics(selectedLabId || undefined),
-        api.hazardAnalytics(selectedLabId || undefined),
+        api.dashboard(effectiveLabId || undefined),
+        api.incidentAnalytics(effectiveLabId || undefined),
+        api.hazardAnalytics(effectiveLabId || undefined),
         api.regulationAnalytics(),
         api.regulations(search),
-        api.incidents(search, selectedLabId || undefined),
-        api.trainings(),
-        api.equipment(search, selectedLabId || undefined),
-        api.bookings(selectedLabId || undefined),
-        api.repairs(selectedLabId || undefined),
+        api.incidents(search, effectiveLabId || undefined),
+        api.trainings(effectiveLabId || undefined),
+        api.equipment(search, effectiveLabId || undefined),
+        api.bookings(effectiveLabId || undefined),
+        api.repairs(effectiveLabId || undefined),
         canManageUsers ? api.users() : Promise.resolve([]),
-        api.hazards(search, selectedLabId || undefined),
-        selectedLabId ? api.listLabUsers(selectedLabId) : Promise.resolve([]),
+        api.hazards(search, effectiveLabId || undefined),
+        effectiveLabId ? api.listLabUsers(effectiveLabId) : Promise.resolve([]),
       ]);
       setStats(nextStats);
       setAnalytics(nextAnalytics);
@@ -206,6 +214,7 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
         window.localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
         setSession(nextSession);
 
+        let initialLabId: number | null = null;
         try {
           const memberships = await api.myLabMemberships();
           setLabMemberships(memberships);
@@ -226,16 +235,18 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
           if (parts[0] === "labs" && parts[1]) {
             const parsedId = parseInt(parts[1], 10);
             if (!isNaN(parsedId)) {
+              initialLabId = parsedId;
               setSelectedLabId(parsedId);
             }
           } else if (userLabs.length > 0) {
+            initialLabId = userLabs[0].id;
             setSelectedLabId(userLabs[0].id);
           }
         } catch (e) {
           console.warn("Failed to load labs/memberships", e);
         }
 
-        return refresh("");
+        return refresh("", { labId: initialLabId });
       })
       .catch(() => {
         api.setAccessToken(null);
@@ -246,6 +257,7 @@ const [notice, setNotice] = useState(appNotice.connecting(language));
 
   useEffect(() => {
     if (!session) return undefined;
+    if (!isSystemAdmin && !selectedLabId) return undefined;
     const timer = window.setTimeout(() => void refresh(query), 300);
     return () => window.clearTimeout(timer);
   }, [query, session]);
@@ -319,7 +331,9 @@ const {
   users,
   labs,
   hazards,
+  selectedLabId,
   isAdmin,
+  canOperateLab,
   sessionUserId: session?.user.id ?? 0,
   withAction,
 });
@@ -454,17 +468,18 @@ const {
 const dashboardMainProps = {
   showLabManagement, showSystemConfig, showOverview, showSystemOverview, showInvitations,
   showAnalytics, showTrainings, showRegulations, showIncidents, showHazards, showEquipment,
-  showRepairs, showUsers, isSystemAdmin, isSystemRoute, isAdmin, language, selectedLabId,
+  showRepairs, showUsers, isSystemAdmin, isSystemRoute, isAdmin, canOperateLab, language, selectedLabId,
   labs, setLabs, session, stats, hazards, trainings, safetyDays, onlineCount, alertCount,
   sensors, alertItems, incidentBars, hazardAnalytics, regulationBars, regulationRows,
   incidentRows, hazardRows, trainingRows, equipmentRows, bookingRows, repairRows, userRows,
   labRows, showLoginBanner, setShowLoginBanner, loginCarousel, carouselSaving, syncLanguages,
   resetToDefault, saveLoginCarousel, cloneSlide, addCarouselSlide, removeCarouselSlide,
   updateCarouselSlide, setNotice, setActive, submitAction, withAction, exportAnalytics,
+  onNavigate: navigateTo,
   onAuthMethodsChange: setAuthMethods,
 };
 const quickActionsProps = {
-  isAdmin, showRegulations, showIncidents, showHazards, showTrainings, showEquipment,
+  isAdmin, canOperateLab, showRegulations, showIncidents, showHazards, showTrainings, showEquipment,
   showRepairs, showUsers, language, session, authMethods, selectedLabId, labs, equipment, trainings, hazards,
   submitAction, withAction,
 };
@@ -518,9 +533,34 @@ const quickActionsProps = {
               onRetry={() => void refresh(query)}
             />
 
-            <DashboardMainContent {...dashboardMainProps} />
-
-            <QuickActionsPanel {...quickActionsProps} />
+            {(parsedRoute.detailKind === "regulation" ||
+              parsedRoute.detailKind === "incident" ||
+              parsedRoute.detailKind === "hazard") &&
+            parsedRoute.detailId !== null ? (
+              <RecordDetail
+                id={parsedRoute.detailId}
+                kind={parsedRoute.detailKind}
+                accessToken={session.access_token}
+                language={language}
+                canReopenHazard={isSystemAdmin || currentLabRole === "lab_admin"}
+                onBack={() =>
+                  navigateTo(
+                    `/labs/${parsedRoute.urlLabId ?? selectedLabId ?? 0}/${parsedRoute.labTab}`,
+                  )
+                }
+                onReopenHazard={(hazardId) =>
+                  withAction(
+                    language === "en" ? "Reopen hazard" : "撤回闭环",
+                    () => api.updateHazardStatus(hazardId, "remediation_submitted"),
+                  )
+                }
+              />
+            ) : (
+              <>
+                <DashboardMainContent {...dashboardMainProps} />
+                <QuickActionsPanel {...quickActionsProps} />
+              </>
+            )}
           </div>
         </div>
       </section>

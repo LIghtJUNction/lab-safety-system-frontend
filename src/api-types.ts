@@ -15,11 +15,12 @@ export type Regulation = {
   effective_date: string | null;
   summary: string;
   file_url: string | null;
+  created_at: string;
 };
 
 export type Incident = {
   id: number;
-  lab_id?: number | null;
+  lab_id: number | null;
   title: string;
   lab_name: string;
   occurred_on: string;
@@ -28,6 +29,7 @@ export type Incident = {
   root_cause: string;
   corrective_actions: string;
   file_url: string | null;
+  created_at: string;
 };
 
 export type CountBucket = { name: string; count: number };
@@ -37,6 +39,7 @@ export type IncidentAnalytics = {
 };
 export type Training = {
   id: number;
+  lab_id: number | null;
   title: string;
   target_role: string;
   status: string;
@@ -177,8 +180,8 @@ export type ExamResult = {
 export type SafetyHazard = {
   id: number;
   title: string;
-  lab_id: number;
-  lab_name?: string; // for display / compatibility
+  lab_id: number | null;
+  lab_name: string;
   category: string;
   description: string;
   status: string;
@@ -187,6 +190,15 @@ export type SafetyHazard = {
   issue_photo_url: string | null;
   remediation_photo_url: string | null;
   remediation_note: string | null;
+  created_at: string;
+};
+export type HazardStatusEvent = {
+  id: number;
+  hazard_id: number;
+  from_status: string | null;
+  to_status: string;
+  actor_user_id: number | null;
+  created_at: string;
 };
 export type HazardAnalytics = {
   by_status: CountBucket[];

@@ -1,4 +1,5 @@
 import { ChevronRight, Inbox } from "lucide-react";
+import type { MouseEvent } from "react";
 import { LANGUAGE_KEY } from "../../lib/constants";
 import { hazardStatusLabel, isStatusToken, repairStatusLabel, tableCellClass } from "../../lib/display";
 import { TableRow } from "../../lib/types";
@@ -32,11 +33,13 @@ export function DataTable({
   title,
   rows,
   onViewAll,
+  onNavigate,
   emptyHint,
 }: {
   title: string;
   rows: TableRow[];
   onViewAll?: () => void;
+  onNavigate?: (href: string) => void;
   emptyHint?: string;
 }) {
   const language = currentLanguage();
@@ -81,29 +84,77 @@ export function DataTable({
           rows.map((row, index) => {
             const cells = Array.isArray(row) ? row : row.cells;
             const actions = Array.isArray(row) ? null : row.actions;
+            const href = Array.isArray(row) ? undefined : row.href;
+            const ariaLabel = Array.isArray(row) ? undefined : row.ariaLabel;
+            const cellContent = cells.map((cell, cellIndex) => (
+              <span
+                key={`${cellIndex}-${cell}`}
+                className={tableCellClass(cell, cellIndex)}
+                title={cell}
+              >
+                {formatCell(cell)}
+              </span>
+            ));
+            const handleNavigate = (event: MouseEvent<HTMLAnchorElement>) => {
+              if (
+                onNavigate &&
+                href &&
+                event.button === 0 &&
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                onNavigate(href);
+              }
+            };
+
+            if (href && !actions) {
+              return (
+                <a
+                  href={href}
+                  aria-label={ariaLabel}
+                  className="data-row flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3.5 text-sm outline-none transition-colors duration-300 hover:bg-amber-50/35 hover:text-amber-800 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 dark:hover:bg-amber-500/[0.035] dark:hover:text-amber-300"
+                  key={`${title}-${index}-${cells.join("-")}`}
+                  onClick={handleNavigate}
+                >
+                  {cellContent}
+                </a>
+              );
+            }
+
             return (
               <div
                 className={cn(
-                  "data-row items-center gap-3 px-5 py-3.5 text-sm transition-colors duration-300 hover:bg-amber-50/35 dark:hover:bg-amber-500/[0.035]",
-                  actions
-                    ? "grid grid-cols-[1fr_auto]"
-                    : "flex flex-wrap gap-x-3 gap-y-1.5",
+                  "data-row text-sm transition-colors duration-300 hover:bg-amber-50/35 dark:hover:bg-amber-500/[0.035]",
+                  actions ? "grid grid-cols-[minmax(0,1fr)_auto]" : "flex",
+                  !href && "items-center gap-3 px-5 py-3.5",
+                  !href && !actions && "flex-wrap gap-x-3 gap-y-1.5",
                 )}
                 key={`${title}-${index}-${cells.join("-")}`}
               >
-                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-                  {cells.map((cell, cellIndex) => (
-                    <span
-                      key={`${cellIndex}-${cell}`}
-                      className={tableCellClass(cell, cellIndex)}
-                      title={cell}
-                    >
-                      {formatCell(cell)}
-                    </span>
-                  ))}
-                </div>
+                {href ? (
+                  <a
+                    href={href}
+                    aria-label={ariaLabel}
+                    className="flex h-full w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3.5 outline-none transition-colors hover:text-amber-800 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 dark:hover:text-amber-300"
+                    onClick={handleNavigate}
+                  >
+                    {cellContent}
+                  </a>
+                ) : (
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                    {cellContent}
+                  </div>
+                )}
                 {actions ? (
-                  <span className="row-actions flex items-center justify-end gap-2">
+                  <span
+                    className={cn(
+                      "row-actions flex items-center justify-end gap-2",
+                      href && "h-full py-3.5 pl-3 pr-5",
+                    )}
+                  >
                     {actions}
                   </span>
                 ) : null}

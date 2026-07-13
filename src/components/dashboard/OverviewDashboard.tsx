@@ -13,6 +13,8 @@ export function OverviewDashboard({
   alertCount,
   sensors,
   alerts,
+  canOperateLab,
+  canCloseHazards,
   onAssign,
   onConfirm,
 onReport,
@@ -26,6 +28,8 @@ isDark = true,
   alertCount: number;
   sensors: SensorReading[];
   alerts: AlertItem[];
+  canOperateLab: boolean;
+  canCloseHazards: boolean;
   onAssign: (hazard: SafetyHazard) => void;
   onConfirm: (hazard: SafetyHazard) => void;
 onReport: () => void;
@@ -59,13 +63,22 @@ isDark?: boolean;
         </div>
 
         <div className="space-y-4">
-<AlertFeed alerts={alerts} onAssign={onAssign} onConfirm={onConfirm} language={language} />
-<QuickActions
-  onReport={onReport}
-  onEquipment={onEquipment}
-  onTraining={onTraining}
+<AlertFeed
+  alerts={alerts}
+  canClaimHazards={canOperateLab}
+  canCloseHazards={canCloseHazards}
+  onAssign={onAssign}
+  onConfirm={onConfirm}
   language={language}
 />
+{canOperateLab ? (
+  <QuickActions
+    onReport={onReport}
+    onEquipment={onEquipment}
+    onTraining={onTraining}
+    language={language}
+  />
+) : null}
         </div>
       </div>
     </div>

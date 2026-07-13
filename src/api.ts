@@ -22,6 +22,7 @@ import type {
   InvitedUser,
   ExamResult,
   SafetyHazard,
+  HazardStatusEvent,
   HazardAnalytics,
   RegulationAnalytics,
   RegulationCreate,
@@ -67,6 +68,7 @@ export type {
   InvitedUser,
   ExamResult,
   SafetyHazard,
+  HazardStatusEvent,
   HazardAnalytics,
   RegulationAnalytics,
   RegulationCreate,
@@ -233,12 +235,15 @@ export const api = {
     request<Regulation[]>(
       `/regulations${q ? `?q=${encodeURIComponent(q)}` : ""}`,
     ),
+  getRegulation: (id: number) => request<Regulation>(`/regulations/${id}`),
   incidents: (q = "", labId?: number) => {
     const params: Record<string, string> = {};
     if (q) params.q = q;
     return request<Incident[]>(withLabQuery("/incidents", labId, params));
   },
-  trainings: () => request<Training[]>("/trainings"),
+  getIncident: (id: number) => request<Incident>(`/incidents/${id}`),
+  trainings: (labId?: number) =>
+    request<Training[]>(withLabQuery("/trainings", labId)),
   equipment: (q = "", labId?: number) => {
     const params: Record<string, string> = {};
     if (q) params.q = q;
@@ -254,6 +259,9 @@ export const api = {
     if (q) params.q = q;
     return request<SafetyHazard[]>(withLabQuery("/hazards", labId, params));
   },
+  getHazard: (id: number) => request<SafetyHazard>(`/hazards/${id}`),
+  hazardHistory: (id: number) =>
+    request<HazardStatusEvent[]>(`/hazards/${id}/history`),
   createRegulation: (payload: RegulationCreate) =>
     request<Regulation>("/regulations", {
       method: "POST",

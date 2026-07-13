@@ -50,6 +50,7 @@ type DashboardMainContentProps = {
   isSystemAdmin: boolean;
   isSystemRoute: boolean;
   isAdmin: boolean;
+  canOperateLab: boolean;
   language: "zh" | "en";
   selectedLabId: number | null;
   labs: Lab[];
@@ -94,6 +95,7 @@ type DashboardMainContentProps = {
   ) => void;
   setNotice: (message: string) => void;
   setActive: (label: string) => void;
+  onNavigate: (href: string) => void;
   submitAction: (
     label: string,
     action: () => Promise<unknown>,
@@ -120,6 +122,7 @@ export function DashboardMainContent({
   isSystemAdmin,
   isSystemRoute,
   isAdmin,
+  canOperateLab,
   language,
   selectedLabId,
   labs,
@@ -158,6 +161,7 @@ export function DashboardMainContent({
   updateCarouselSlide,
   setNotice,
   setActive,
+  onNavigate,
   submitAction,
   withAction,
   exportAnalytics,
@@ -245,6 +249,8 @@ export function DashboardMainContent({
             alertCount={alertCount}
             sensors={sensors}
             alerts={alertItems}
+            canOperateLab={canOperateLab}
+            canCloseHazards={isAdmin}
             language={language}
             onAssign={(hazard) =>
               void withAction(
@@ -252,11 +258,12 @@ export function DashboardMainContent({
                 () => api.claimHazard(hazard.id, session.user.id),
               ).catch(() => undefined)
             }
-            onConfirm={(hazard) =>
+            onConfirm={(hazard) => {
+              if (!isAdmin) return;
               void withAction(language === "en" ? "Confirm safe" : "确认安全", () =>
                 api.updateHazardStatus(hazard.id, "closed"),
-              ).catch(() => undefined)
-            }
+              ).catch(() => undefined);
+            }}
             onReport={() => {
               setActive("隐患管理");
               document
@@ -368,6 +375,24 @@ export function DashboardMainContent({
           />
         ) : null}
 
+        {showAnalytics && isAdmin ? (
+          <AnalyticsPanel
+            title={language === "en" ? "Hazard status analysis" : "隐患状态分析"}
+            items={hazardAnalytics.by_status}
+            onExport={exportAnalytics}
+            language={language}
+          />
+        ) : null}
+
+        {showAnalytics && isAdmin ? (
+          <AnalyticsPanel
+            title={language === "en" ? "Hazard category analysis" : "隐患分类分析"}
+            items={hazardAnalytics.by_category}
+            onExport={exportAnalytics}
+            language={language}
+          />
+        ) : null}
+
         {showAnalytics && isAdmin && regulationBars.length > 0 ? (
           <AnalyticsPanel
             title={language === "en" ? "Regulation statistics" : "法规统计"}
@@ -400,6 +425,7 @@ export function DashboardMainContent({
             title={language === "en" ? "Regulation uploads" : "法规条例上传"}
             rows={regulationRows}
             onViewAll={() => setActive("法规条例")}
+            onNavigate={onNavigate}
           />
         ) : null}
         {showIncidents ? (
@@ -407,6 +433,7 @@ export function DashboardMainContent({
             title={language === "en" ? "Incident case library" : "事故案例库"}
             rows={incidentRows}
             onViewAll={() => setActive("事故案例")}
+            onNavigate={onNavigate}
           />
         ) : null}
         {showHazards ? (
@@ -422,6 +449,7 @@ export function DashboardMainContent({
             }
             rows={hazardRows}
             onViewAll={() => setActive("隐患管理")}
+            onNavigate={onNavigate}
           />
         ) : null}
         {showTrainings ? (
